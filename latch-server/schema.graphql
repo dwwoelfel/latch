@@ -1,0 +1,120 @@
+# Hand-maintained schema used by src/schema.ts
+
+scalar JSON
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  node(id: ID!): Node
+  featureFlag(key: String!): FeatureFlag
+  featureFlags(first: Int = 10, after: String): FeatureFlagsConnection!
+}
+
+type Mutation {
+  createFeatureFlag(input: CreateFeatureFlagInput!): CreateFeatureFlagPayload!
+  updateFeatureFlag(input: UpdateFeatureFlagInput!): UpdateFeatureFlagPayload!
+}
+
+type PageInfo {
+  startCursor: String
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+interface Node {
+  id: ID!
+}
+
+enum FeatureFlagType {
+  BOOL
+  INT
+  FLOAT
+  STRING
+  JSON
+}
+
+type FeatureFlag implements Node {
+  id: ID!
+  key: String!
+  generation: String!
+  description: String
+  variations: [FeatureFlagVariation!]!
+  currentVariation: Int!
+  type: FeatureFlagType!
+  previousVersions(
+    first: Int = 10
+    after: String
+  ): FeatureFlagVersionsConnection!
+}
+
+type FeatureFlagVariation {
+  description: String
+  value: JSON!
+}
+
+type FeatureFlagVersion {
+  generation: String!
+  description: String
+  variations: [FeatureFlagVariation!]!
+  currentVariation: Int!
+  timeDeleted: String!
+}
+
+type FeatureFlagsEdge {
+  cursor: String!
+  node: FeatureFlag!
+}
+
+type FeatureFlagsConnection {
+  nodes: [FeatureFlag!]!
+  edges: [FeatureFlagsEdge!]!
+  pageInfo: PageInfo!
+}
+
+type FeatureFlagVersionsEdge {
+  cursor: String!
+  node: FeatureFlagVersion!
+}
+
+type FeatureFlagVersionsConnection {
+  nodes: [FeatureFlagVersion!]!
+  edges: [FeatureFlagVersionsEdge!]!
+  pageInfo: PageInfo!
+}
+
+input FeatureFlagVariationInput {
+  description: String
+  value: JSON!
+}
+
+input CreateFeatureFlagInput {
+  key: String!
+  type: FeatureFlagType!
+  description: String
+  variations: [FeatureFlagVariationInput!]!
+  currentVariation: Int!
+}
+
+type CreateFeatureFlagPayload {
+  featureFlag: FeatureFlag!
+}
+
+input FeatureFlagPatch {
+  description: String
+  variations: [FeatureFlagVariationInput!]
+  currentVariation: Int
+}
+
+input UpdateFeatureFlagInput {
+  key: String!
+  generation: String!
+  patch: FeatureFlagPatch!
+}
+
+type UpdateFeatureFlagPayload {
+  featureFlag: FeatureFlag!
+}

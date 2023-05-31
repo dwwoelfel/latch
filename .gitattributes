@@ -1,0 +1,4 @@
+/latch-server/.yarn/**            linguist-vendored
+/latch-server/.yarn/releases/*    binary
+/latch-server/.yarn/plugins/**/*  binary
+/latch-server/.pnp.*              binary linguist-generated
