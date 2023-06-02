@@ -8,8 +8,10 @@ const config: CodegenConfig = {
       config: {
         contextType: './schema#Context',
         mappers: {
+          Viewer: './schema#ViewerSource',
           FeatureFlag: './schema#FeatureFlagSource',
           FeatureFlagVersion: './schema#FeatureFlagVersionSource',
+          TopicSubscription: '@google-cloud/pubsub#Subscription',
           FeatureFlagsConnection: '@google-cloud/storage#GetFilesResponse',
           FeatureFlagsEdge: '@google-cloud/storage#File',
           FeatureFlagVersionsConnection:

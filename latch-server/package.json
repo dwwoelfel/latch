@@ -10,6 +10,7 @@
     "@emotion/react": "^11.11.0",
     "@emotion/server": "^11.11.0",
     "@fastify/middie": "^8.3.0",
+    "@google-cloud/pubsub": "^3.7.0",
     "@google-cloud/storage": "^6.10.1",
     "@graphql-tools/schema": "^10.0.0",
     "@mantine/core": "^6.0.11",

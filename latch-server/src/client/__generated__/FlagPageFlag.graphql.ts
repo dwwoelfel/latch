@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<36f4bd79a8f7b63e9d2bc6b3dc36b1bf>>
+ * @generated SignedSource<<0fb042c960b0acc98d850925f3d4a0f5>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -12,8 +12,9 @@ import { Fragment, ReaderFragment } from 'relay-runtime';
 export type FeatureFlagType = "BOOL" | "FLOAT" | "INT" | "JSON" | "STRING" | "%future added value";
 import { FragmentRefs } from "relay-runtime";
 export type FlagPageFlag$data = {
-  readonly currentVariation: number;
+  readonly defaultVariation: number;
   readonly description: string | null;
+  readonly environmentVariations: Record<string, number>;
   readonly generation: string;
   readonly key: string;
   readonly type: FeatureFlagType;
@@ -88,7 +89,14 @@ return {
       "alias": null,
       "args": null,
       "kind": "ScalarField",
-      "name": "currentVariation",
+      "name": "defaultVariation",
+      "storageKey": null
+    },
+    {
+      "alias": null,
+      "args": null,
+      "kind": "ScalarField",
+      "name": "environmentVariations",
       "storageKey": null
     },
     {
@@ -102,6 +110,6 @@ return {
 };
 })();
 
-(node as any).hash = "f70e6a7a60ea40df3f88c5a64ce475a9";
+(node as any).hash = "17a699dc3129d6811f556ca20765ea4e";
 
 export default node;

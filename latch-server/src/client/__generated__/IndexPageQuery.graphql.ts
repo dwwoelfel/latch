@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<f7da45842ad26005b61856b42f692112>>
+ * @generated SignedSource<<f98b2cb91a33da3a1df17375e60cb1de>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -12,7 +12,9 @@ import { ConcreteRequest, Query } from 'relay-runtime';
 import { FragmentRefs } from "relay-runtime";
 export type IndexPageQuery$variables = {};
 export type IndexPageQuery$data = {
-  readonly " $fragmentSpreads": FragmentRefs<"IndexPageFlags">;
+  readonly viewer: {
+    readonly " $fragmentSpreads": FragmentRefs<"IndexPageFlags">;
+  };
 };
 export type IndexPageQuery = {
   response: IndexPageQuery$data;
@@ -26,7 +28,14 @@ var v0 = [
     "name": "first",
     "value": 10
   }
-];
+],
+v1 = {
+  "alias": null,
+  "args": null,
+  "kind": "ScalarField",
+  "name": "id",
+  "storageKey": null
+};
 return {
   "fragment": {
     "argumentDefinitions": [],
@@ -35,15 +44,26 @@ return {
     "name": "IndexPageQuery",
     "selections": [
       {
-        "args": [
+        "alias": null,
+        "args": null,
+        "concreteType": "Viewer",
+        "kind": "LinkedField",
+        "name": "viewer",
+        "plural": false,
+        "selections": [
           {
-            "kind": "Literal",
-            "name": "count",
-            "value": 10
+            "args": [
+              {
+                "kind": "Literal",
+                "name": "count",
+                "value": 10
+              }
+            ],
+            "kind": "FragmentSpread",
+            "name": "IndexPageFlags"
           }
         ],
-        "kind": "FragmentSpread",
-        "name": "IndexPageFlags"
+        "storageKey": null
       }
     ],
     "type": "Query",
@@ -57,69 +77,102 @@ return {
     "selections": [
       {
         "alias": null,
-        "args": (v0/*: any*/),
-        "concreteType": "FeatureFlagsConnection",
+        "args": null,
+        "concreteType": "Viewer",
         "kind": "LinkedField",
-        "name": "featureFlags",
+        "name": "viewer",
         "plural": false,
         "selections": [
           {
             "alias": null,
-            "args": null,
-            "concreteType": "FeatureFlagsEdge",
+            "args": (v0/*: any*/),
+            "concreteType": "FeatureFlagsConnection",
             "kind": "LinkedField",
-            "name": "edges",
-            "plural": true,
+            "name": "featureFlags",
+            "plural": false,
             "selections": [
               {
                 "alias": null,
                 "args": null,
-                "concreteType": "FeatureFlag",
+                "concreteType": "FeatureFlagsEdge",
                 "kind": "LinkedField",
-                "name": "node",
-                "plural": false,
+                "name": "edges",
+                "plural": true,
                 "selections": [
                   {
                     "alias": null,
                     "args": null,
-                    "kind": "ScalarField",
-                    "name": "key",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "type",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "description",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "generation",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "concreteType": "FeatureFlagVariation",
+                    "concreteType": "FeatureFlag",
                     "kind": "LinkedField",
-                    "name": "variations",
-                    "plural": true,
+                    "name": "node",
+                    "plural": false,
                     "selections": [
                       {
                         "alias": null,
                         "args": null,
                         "kind": "ScalarField",
-                        "name": "value",
+                        "name": "key",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "type",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "description",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "generation",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "concreteType": "FeatureFlagVariation",
+                        "kind": "LinkedField",
+                        "name": "variations",
+                        "plural": true,
+                        "selections": [
+                          {
+                            "alias": null,
+                            "args": null,
+                            "kind": "ScalarField",
+                            "name": "value",
+                            "storageKey": null
+                          }
+                        ],
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "defaultVariation",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "environmentVariations",
+                        "storageKey": null
+                      },
+                      (v1/*: any*/),
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "__typename",
                         "storageKey": null
                       }
                     ],
@@ -129,21 +182,7 @@ return {
                     "alias": null,
                     "args": null,
                     "kind": "ScalarField",
-                    "name": "currentVariation",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "id",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "__typename",
+                    "name": "cursor",
                     "storageKey": null
                   }
                 ],
@@ -152,63 +191,57 @@ return {
               {
                 "alias": null,
                 "args": null,
-                "kind": "ScalarField",
-                "name": "cursor",
+                "concreteType": "PageInfo",
+                "kind": "LinkedField",
+                "name": "pageInfo",
+                "plural": false,
+                "selections": [
+                  {
+                    "alias": null,
+                    "args": null,
+                    "kind": "ScalarField",
+                    "name": "endCursor",
+                    "storageKey": null
+                  },
+                  {
+                    "alias": null,
+                    "args": null,
+                    "kind": "ScalarField",
+                    "name": "hasNextPage",
+                    "storageKey": null
+                  }
+                ],
                 "storageKey": null
               }
             ],
-            "storageKey": null
+            "storageKey": "featureFlags(first:10)"
           },
           {
             "alias": null,
-            "args": null,
-            "concreteType": "PageInfo",
-            "kind": "LinkedField",
-            "name": "pageInfo",
-            "plural": false,
-            "selections": [
-              {
-                "alias": null,
-                "args": null,
-                "kind": "ScalarField",
-                "name": "endCursor",
-                "storageKey": null
-              },
-              {
-                "alias": null,
-                "args": null,
-                "kind": "ScalarField",
-                "name": "hasNextPage",
-                "storageKey": null
-              }
-            ],
-            "storageKey": null
-          }
+            "args": (v0/*: any*/),
+            "filters": null,
+            "handle": "connection",
+            "key": "IndexPage_featureFlags",
+            "kind": "LinkedHandle",
+            "name": "featureFlags"
+          },
+          (v1/*: any*/)
         ],
-        "storageKey": "featureFlags(first:10)"
-      },
-      {
-        "alias": null,
-        "args": (v0/*: any*/),
-        "filters": null,
-        "handle": "connection",
-        "key": "IndexPage_featureFlags",
-        "kind": "LinkedHandle",
-        "name": "featureFlags"
+        "storageKey": null
       }
     ]
   },
   "params": {
-    "cacheID": "5f680dec3f76f4cc6fb8d7d851c1983b",
+    "cacheID": "80be5f4f8a38f77e0c7830f31ab489ef",
     "id": null,
     "metadata": {},
     "name": "IndexPageQuery",
     "operationKind": "query",
-    "text": "query IndexPageQuery {\n  ...IndexPageFlags_1KmBw7\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  currentVariation\n}\n\nfragment IndexPageFlags_1KmBw7 on Query {\n  featureFlags(first: 10) {\n    edges {\n      node {\n        key\n        ...IndexPageFlagRow\n        id\n        __typename\n      }\n      cursor\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n}\n"
+    "text": "query IndexPageQuery {\n  viewer {\n    ...IndexPageFlags_1KmBw7\n    id\n  }\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  defaultVariation\n  environmentVariations\n}\n\nfragment IndexPageFlags_1KmBw7 on Viewer {\n  featureFlags(first: 10) {\n    edges {\n      node {\n        key\n        ...IndexPageFlagRow\n        id\n        __typename\n      }\n      cursor\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "320b649aca08f3de779061b4497858a2";
+(node as any).hash = "80acddb47fb4ce9c604c2da7fb04cca4";
 
 export default node;

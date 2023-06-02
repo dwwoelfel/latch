@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<bae8bc2b9548e4e323e0761d114af5c9>>
+ * @generated SignedSource<<767759e38ba40c69d73745566087ed55>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -12,8 +12,9 @@ import { Fragment, ReaderFragment } from 'relay-runtime';
 export type FeatureFlagType = "BOOL" | "FLOAT" | "INT" | "JSON" | "STRING" | "%future added value";
 import { FragmentRefs } from "relay-runtime";
 export type IndexPageFlagRow$data = {
-  readonly currentVariation: number;
+  readonly defaultVariation: number;
   readonly description: string | null;
+  readonly environmentVariations: Record<string, number>;
   readonly generation: string;
   readonly key: string;
   readonly type: FeatureFlagType;
@@ -83,7 +84,14 @@ const node: ReaderFragment = {
       "alias": null,
       "args": null,
       "kind": "ScalarField",
-      "name": "currentVariation",
+      "name": "defaultVariation",
+      "storageKey": null
+    },
+    {
+      "alias": null,
+      "args": null,
+      "kind": "ScalarField",
+      "name": "environmentVariations",
       "storageKey": null
     }
   ],
@@ -91,6 +99,6 @@ const node: ReaderFragment = {
   "abstractKey": null
 };
 
-(node as any).hash = "8d725ad98999334820528316cfcc4d02";
+(node as any).hash = "586b761e049cc15e8f1d0802f8dace5c";
 
 export default node;

@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<cb4cb6544cb581133baabfe6ee8f61ba>>
+ * @generated SignedSource<<75c7a6bb4def5b24953e89617620f348>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -64,7 +64,9 @@ return {
         "backward": null,
         "path": (v0/*: any*/)
       },
-      "fragmentPathInResult": [],
+      "fragmentPathInResult": [
+        "viewer"
+      ],
       "operation": IndexPageFlagsPaginationQuery_graphql
     }
   },
@@ -155,11 +157,11 @@ return {
       "storageKey": null
     }
   ],
-  "type": "Query",
+  "type": "Viewer",
   "abstractKey": null
 };
 })();
 
-(node as any).hash = "6011efa3e738c5d033c179e0e979fd51";
+(node as any).hash = "3b6d6d46db36a8ac5e89d64fd06cd7bb";
 
 export default node;

@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { FeatureFlagSource, FeatureFlagVersionSource, FeatureFlagVersionsConnectionSource, Context } from './schema';
+import { ViewerSource, FeatureFlagSource, FeatureFlagVersionSource, FeatureFlagVersionsConnectionSource, Context } from './schema';
+import { Subscription } from '@google-cloud/pubsub';
 import { GetFilesResponse, File } from '@google-cloud/storage';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -18,11 +19,24 @@ export type Scalars = {
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
   JSON: { input: any; output: any; }
+  VariationByEnvironment: { input: any; output: any; }
+};
+
+export type CreateEnvironmentInput = {
+  color: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+};
+
+export type CreateEnvironmentPayload = {
+  __typename?: 'CreateEnvironmentPayload';
+  environment: Environment;
+  viewer: Viewer;
 };
 
 export type CreateFeatureFlagInput = {
-  currentVariation: Scalars['Int']['input'];
+  defaultVariation: Scalars['Int']['input'];
   description?: InputMaybe<Scalars['String']['input']>;
+  environmentVariations: Scalars['VariationByEnvironment']['input'];
   key: Scalars['String']['input'];
   type: FeatureFlagType;
   variations: Array<FeatureFlagVariationInput>;
@@ -33,10 +47,17 @@ export type CreateFeatureFlagPayload = {
   featureFlag: FeatureFlag;
 };
 
+export type Environment = {
+  __typename?: 'Environment';
+  color: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
 export type FeatureFlag = Node & {
   __typename?: 'FeatureFlag';
-  currentVariation: Scalars['Int']['output'];
+  defaultVariation: Scalars['Int']['output'];
   description?: Maybe<Scalars['String']['output']>;
+  environmentVariations: Scalars['VariationByEnvironment']['output'];
   generation: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   key: Scalars['String']['output'];
@@ -52,8 +73,9 @@ export type FeatureFlagPreviousVersionsArgs = {
 };
 
 export type FeatureFlagPatch = {
-  currentVariation?: InputMaybe<Scalars['Int']['input']>;
+  defaultVariation?: InputMaybe<Scalars['Int']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
+  environmentVariations?: InputMaybe<Scalars['VariationByEnvironment']['input']>;
   variations?: InputMaybe<Array<FeatureFlagVariationInput>>;
 };
 
@@ -78,8 +100,9 @@ export type FeatureFlagVariationInput = {
 
 export type FeatureFlagVersion = {
   __typename?: 'FeatureFlagVersion';
-  currentVariation: Scalars['Int']['output'];
+  defaultVariation: Scalars['Int']['output'];
   description?: Maybe<Scalars['String']['output']>;
+  environmentVariations: Scalars['VariationByEnvironment']['output'];
   generation: Scalars['String']['output'];
   timeDeleted: Scalars['String']['output'];
   variations: Array<FeatureFlagVariation>;
@@ -113,13 +136,25 @@ export type FeatureFlagsEdge = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  createEnvironment: CreateEnvironmentPayload;
   createFeatureFlag: CreateFeatureFlagPayload;
+  updateEnvironment: UpdateEnvironmentPayload;
   updateFeatureFlag: UpdateFeatureFlagPayload;
+};
+
+
+export type MutationCreateEnvironmentArgs = {
+  input: CreateEnvironmentInput;
 };
 
 
 export type MutationCreateFeatureFlagArgs = {
   input: CreateFeatureFlagInput;
+};
+
+
+export type MutationUpdateEnvironmentArgs = {
+  input: UpdateEnvironmentInput;
 };
 
 
@@ -141,25 +176,41 @@ export type PageInfo = {
 
 export type Query = {
   __typename?: 'Query';
-  featureFlag?: Maybe<FeatureFlag>;
-  featureFlags: FeatureFlagsConnection;
   node?: Maybe<Node>;
-};
-
-
-export type QueryFeatureFlagArgs = {
-  key: Scalars['String']['input'];
-};
-
-
-export type QueryFeatureFlagsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
+  testVariationByEnvironment?: Maybe<Scalars['VariationByEnvironment']['output']>;
+  viewer: Viewer;
 };
 
 
 export type QueryNodeArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryTestVariationByEnvironmentArgs = {
+  input?: InputMaybe<Scalars['VariationByEnvironment']['input']>;
+};
+
+export type TopicSubscription = {
+  __typename?: 'TopicSubscription';
+  consoleUrl: Scalars['String']['output'];
+  hostname?: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
+};
+
+export type UpdateEnvironmentInput = {
+  name: Scalars['String']['input'];
+  patch: UpdateEnvironmentPatch;
+};
+
+export type UpdateEnvironmentPatch = {
+  color: Scalars['String']['input'];
+};
+
+export type UpdateEnvironmentPayload = {
+  __typename?: 'UpdateEnvironmentPayload';
+  environment: Environment;
+  viewer: Viewer;
 };
 
 export type UpdateFeatureFlagInput = {
@@ -171,6 +222,26 @@ export type UpdateFeatureFlagInput = {
 export type UpdateFeatureFlagPayload = {
   __typename?: 'UpdateFeatureFlagPayload';
   featureFlag: FeatureFlag;
+};
+
+export type Viewer = Node & {
+  __typename?: 'Viewer';
+  environments: Array<Environment>;
+  featureFlag?: Maybe<FeatureFlag>;
+  featureFlags: FeatureFlagsConnection;
+  id: Scalars['ID']['output'];
+  topicSubscriptions: Array<TopicSubscription>;
+};
+
+
+export type ViewerFeatureFlagArgs = {
+  key: Scalars['String']['input'];
+};
+
+
+export type ViewerFeatureFlagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -243,14 +314,17 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
-  Node: ( FeatureFlagSource );
+  Node: ( FeatureFlagSource ) | ( ViewerSource );
 };
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CreateEnvironmentInput: CreateEnvironmentInput;
+  CreateEnvironmentPayload: ResolverTypeWrapper<Omit<CreateEnvironmentPayload, 'viewer'> & { viewer: ResolversTypes['Viewer'] }>;
   CreateFeatureFlagInput: CreateFeatureFlagInput;
   CreateFeatureFlagPayload: ResolverTypeWrapper<Omit<CreateFeatureFlagPayload, 'featureFlag'> & { featureFlag: ResolversTypes['FeatureFlag'] }>;
+  Environment: ResolverTypeWrapper<Environment>;
   FeatureFlag: ResolverTypeWrapper<FeatureFlagSource>;
   FeatureFlagPatch: FeatureFlagPatch;
   FeatureFlagType: FeatureFlagType;
@@ -269,15 +343,24 @@ export type ResolversTypes = {
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  TopicSubscription: ResolverTypeWrapper<Subscription>;
+  UpdateEnvironmentInput: UpdateEnvironmentInput;
+  UpdateEnvironmentPatch: UpdateEnvironmentPatch;
+  UpdateEnvironmentPayload: ResolverTypeWrapper<Omit<UpdateEnvironmentPayload, 'viewer'> & { viewer: ResolversTypes['Viewer'] }>;
   UpdateFeatureFlagInput: UpdateFeatureFlagInput;
   UpdateFeatureFlagPayload: ResolverTypeWrapper<Omit<UpdateFeatureFlagPayload, 'featureFlag'> & { featureFlag: ResolversTypes['FeatureFlag'] }>;
+  VariationByEnvironment: ResolverTypeWrapper<Scalars['VariationByEnvironment']['output']>;
+  Viewer: ResolverTypeWrapper<ViewerSource>;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
+  CreateEnvironmentInput: CreateEnvironmentInput;
+  CreateEnvironmentPayload: Omit<CreateEnvironmentPayload, 'viewer'> & { viewer: ResolversParentTypes['Viewer'] };
   CreateFeatureFlagInput: CreateFeatureFlagInput;
   CreateFeatureFlagPayload: Omit<CreateFeatureFlagPayload, 'featureFlag'> & { featureFlag: ResolversParentTypes['FeatureFlag'] };
+  Environment: Environment;
   FeatureFlag: FeatureFlagSource;
   FeatureFlagPatch: FeatureFlagPatch;
   FeatureFlagVariation: FeatureFlagVariation;
@@ -295,8 +378,20 @@ export type ResolversParentTypes = {
   PageInfo: PageInfo;
   Query: {};
   String: Scalars['String']['output'];
+  TopicSubscription: Subscription;
+  UpdateEnvironmentInput: UpdateEnvironmentInput;
+  UpdateEnvironmentPatch: UpdateEnvironmentPatch;
+  UpdateEnvironmentPayload: Omit<UpdateEnvironmentPayload, 'viewer'> & { viewer: ResolversParentTypes['Viewer'] };
   UpdateFeatureFlagInput: UpdateFeatureFlagInput;
   UpdateFeatureFlagPayload: Omit<UpdateFeatureFlagPayload, 'featureFlag'> & { featureFlag: ResolversParentTypes['FeatureFlag'] };
+  VariationByEnvironment: Scalars['VariationByEnvironment']['output'];
+  Viewer: ViewerSource;
+};
+
+export type CreateEnvironmentPayloadResolvers<ContextType = Context, ParentType extends ResolversParentTypes['CreateEnvironmentPayload'] = ResolversParentTypes['CreateEnvironmentPayload']> = {
+  environment?: Resolver<ResolversTypes['Environment'], ParentType, ContextType>;
+  viewer?: Resolver<ResolversTypes['Viewer'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type CreateFeatureFlagPayloadResolvers<ContextType = Context, ParentType extends ResolversParentTypes['CreateFeatureFlagPayload'] = ResolversParentTypes['CreateFeatureFlagPayload']> = {
@@ -304,9 +399,16 @@ export type CreateFeatureFlagPayloadResolvers<ContextType = Context, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type EnvironmentResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Environment'] = ResolversParentTypes['Environment']> = {
+  color?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type FeatureFlagResolvers<ContextType = Context, ParentType extends ResolversParentTypes['FeatureFlag'] = ResolversParentTypes['FeatureFlag']> = {
-  currentVariation?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  defaultVariation?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  environmentVariations?: Resolver<ResolversTypes['VariationByEnvironment'], ParentType, ContextType>;
   generation?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   key?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -323,8 +425,9 @@ export type FeatureFlagVariationResolvers<ContextType = Context, ParentType exte
 };
 
 export type FeatureFlagVersionResolvers<ContextType = Context, ParentType extends ResolversParentTypes['FeatureFlagVersion'] = ResolversParentTypes['FeatureFlagVersion']> = {
-  currentVariation?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  defaultVariation?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  environmentVariations?: Resolver<ResolversTypes['VariationByEnvironment'], ParentType, ContextType>;
   generation?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   timeDeleted?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   variations?: Resolver<Array<ResolversTypes['FeatureFlagVariation']>, ParentType, ContextType>;
@@ -362,12 +465,14 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 }
 
 export type MutationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
+  createEnvironment?: Resolver<ResolversTypes['CreateEnvironmentPayload'], ParentType, ContextType, RequireFields<MutationCreateEnvironmentArgs, 'input'>>;
   createFeatureFlag?: Resolver<ResolversTypes['CreateFeatureFlagPayload'], ParentType, ContextType, RequireFields<MutationCreateFeatureFlagArgs, 'input'>>;
+  updateEnvironment?: Resolver<ResolversTypes['UpdateEnvironmentPayload'], ParentType, ContextType, RequireFields<MutationUpdateEnvironmentArgs, 'input'>>;
   updateFeatureFlag?: Resolver<ResolversTypes['UpdateFeatureFlagPayload'], ParentType, ContextType, RequireFields<MutationUpdateFeatureFlagArgs, 'input'>>;
 };
 
 export type NodeResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = {
-  __resolveType: TypeResolveFn<'FeatureFlag', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'FeatureFlag' | 'Viewer', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 };
 
@@ -380,9 +485,22 @@ export type PageInfoResolvers<ContextType = Context, ParentType extends Resolver
 };
 
 export type QueryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
-  featureFlag?: Resolver<Maybe<ResolversTypes['FeatureFlag']>, ParentType, ContextType, RequireFields<QueryFeatureFlagArgs, 'key'>>;
-  featureFlags?: Resolver<ResolversTypes['FeatureFlagsConnection'], ParentType, ContextType, RequireFields<QueryFeatureFlagsArgs, 'first'>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<QueryNodeArgs, 'id'>>;
+  testVariationByEnvironment?: Resolver<Maybe<ResolversTypes['VariationByEnvironment']>, ParentType, ContextType, Partial<QueryTestVariationByEnvironmentArgs>>;
+  viewer?: Resolver<ResolversTypes['Viewer'], ParentType, ContextType>;
+};
+
+export type TopicSubscriptionResolvers<ContextType = Context, ParentType extends ResolversParentTypes['TopicSubscription'] = ResolversParentTypes['TopicSubscription']> = {
+  consoleUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  hostname?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type UpdateEnvironmentPayloadResolvers<ContextType = Context, ParentType extends ResolversParentTypes['UpdateEnvironmentPayload'] = ResolversParentTypes['UpdateEnvironmentPayload']> = {
+  environment?: Resolver<ResolversTypes['Environment'], ParentType, ContextType>;
+  viewer?: Resolver<ResolversTypes['Viewer'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type UpdateFeatureFlagPayloadResolvers<ContextType = Context, ParentType extends ResolversParentTypes['UpdateFeatureFlagPayload'] = ResolversParentTypes['UpdateFeatureFlagPayload']> = {
@@ -390,8 +508,23 @@ export type UpdateFeatureFlagPayloadResolvers<ContextType = Context, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export interface VariationByEnvironmentScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['VariationByEnvironment'], any> {
+  name: 'VariationByEnvironment';
+}
+
+export type ViewerResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Viewer'] = ResolversParentTypes['Viewer']> = {
+  environments?: Resolver<Array<ResolversTypes['Environment']>, ParentType, ContextType>;
+  featureFlag?: Resolver<Maybe<ResolversTypes['FeatureFlag']>, ParentType, ContextType, RequireFields<ViewerFeatureFlagArgs, 'key'>>;
+  featureFlags?: Resolver<ResolversTypes['FeatureFlagsConnection'], ParentType, ContextType, RequireFields<ViewerFeatureFlagsArgs, 'first'>>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  topicSubscriptions?: Resolver<Array<ResolversTypes['TopicSubscription']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type Resolvers<ContextType = Context> = {
+  CreateEnvironmentPayload?: CreateEnvironmentPayloadResolvers<ContextType>;
   CreateFeatureFlagPayload?: CreateFeatureFlagPayloadResolvers<ContextType>;
+  Environment?: EnvironmentResolvers<ContextType>;
   FeatureFlag?: FeatureFlagResolvers<ContextType>;
   FeatureFlagVariation?: FeatureFlagVariationResolvers<ContextType>;
   FeatureFlagVersion?: FeatureFlagVersionResolvers<ContextType>;
@@ -404,6 +537,10 @@ export type Resolvers<ContextType = Context> = {
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  TopicSubscription?: TopicSubscriptionResolvers<ContextType>;
+  UpdateEnvironmentPayload?: UpdateEnvironmentPayloadResolvers<ContextType>;
   UpdateFeatureFlagPayload?: UpdateFeatureFlagPayloadResolvers<ContextType>;
+  VariationByEnvironment?: GraphQLScalarType;
+  Viewer?: ViewerResolvers<ContextType>;
 };
 

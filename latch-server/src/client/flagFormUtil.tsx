@@ -35,14 +35,14 @@ export function friendlyType(type: FeatureFlagType): string {
   }
 }
 
-export function defaultValue(type: FeatureFlagType): any {
+export function defaultValue(type: FeatureFlagType, alt?: boolean): any {
   switch (type) {
     case 'BOOL':
-      return true;
+      return alt ? false : true;
     case 'FLOAT':
-      return 1.0;
+      return alt ? 2.0 : 1.0;
     case 'INT':
-      return 1;
+      return alt ? 2 : 1;
     case 'STRING':
       return '';
     case 'JSON':

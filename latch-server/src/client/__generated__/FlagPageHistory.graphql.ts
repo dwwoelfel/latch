@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<bfefbc22c057ea8b85f28333b1e5b060>>
+ * @generated SignedSource<<79b621f96fd13822bfe0aa044f0e06fe>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -12,15 +12,17 @@ import { ReaderFragment, RefetchableFragment } from 'relay-runtime';
 export type FeatureFlagType = "BOOL" | "FLOAT" | "INT" | "JSON" | "STRING" | "%future added value";
 import { FragmentRefs } from "relay-runtime";
 export type FlagPageHistory$data = {
-  readonly currentVariation: number;
+  readonly defaultVariation: number;
   readonly description: string | null;
+  readonly environmentVariations: Record<string, number>;
   readonly id: string;
   readonly previousVersions: {
     readonly edges: ReadonlyArray<{
       readonly cursor: string;
       readonly node: {
-        readonly currentVariation: number;
+        readonly defaultVariation: number;
         readonly description: string | null;
+        readonly environmentVariations: Record<string, number>;
         readonly timeDeleted: string;
         readonly variations: ReadonlyArray<{
           readonly description: string | null;
@@ -77,7 +79,14 @@ v3 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
-  "name": "currentVariation",
+  "name": "defaultVariation",
+  "storageKey": null
+},
+v4 = {
+  "alias": null,
+  "args": null,
+  "kind": "ScalarField",
+  "name": "environmentVariations",
   "storageKey": null
 };
 return {
@@ -155,6 +164,7 @@ return {
                 (v1/*: any*/),
                 (v2/*: any*/),
                 (v3/*: any*/),
+                (v4/*: any*/),
                 {
                   "alias": null,
                   "args": null,
@@ -213,6 +223,7 @@ return {
     (v1/*: any*/),
     (v2/*: any*/),
     (v3/*: any*/),
+    (v4/*: any*/),
     {
       "alias": null,
       "args": null,
@@ -226,6 +237,6 @@ return {
 };
 })();
 
-(node as any).hash = "18cc647c00e89d52626fa6538ddfc742";
+(node as any).hash = "50f1c8c18248a7302b14dfd0c593d08b";
 
 export default node;

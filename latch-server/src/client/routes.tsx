@@ -1,5 +1,5 @@
 import {RouteObject, To, matchRoutes, redirect} from 'react-router-dom';
-import {App} from './App.js';
+import {App, loader as appLoader} from './App.js';
 import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironment.js';
 import {createContext} from 'react';
 
@@ -10,6 +10,9 @@ export const createRoutes = (
   {
     path: '/',
     element: <App />,
+    loader() {
+      return appLoader(environment);
+    },
     children: [
       {
         path: '/',
@@ -22,21 +25,31 @@ export const createRoutes = (
         },
       },
       {
+        path: '/flags/create',
+        async lazy() {
+          const {NewFlagPage, loader} = await import('./NewFlagPage.tsx');
+          return {
+            loader: loader.bind(loader, environment),
+            element: <NewFlagPage />,
+          };
+        },
+      },
+      {
+        path: '/environments/create',
+        async lazy() {
+          const {NewEnvironmentPage} = await import('./NewEnvironmentPage.tsx');
+          return {
+            element: <NewEnvironmentPage />,
+          };
+        },
+      },
+      {
         path: '/flag/:key',
         async lazy() {
           const {loader, FlagPage} = await import('./FlagPage.tsx');
           return {
             loader: loader.bind(loader, environment),
             element: <FlagPage />,
-          };
-        },
-      },
-      {
-        path: '/new-flag',
-        async lazy() {
-          const {NewFlagPage} = await import('./NewFlagPage.tsx');
-          return {
-            element: <NewFlagPage />,
           };
         },
       },

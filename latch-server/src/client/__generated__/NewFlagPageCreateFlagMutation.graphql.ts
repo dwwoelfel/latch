@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<dbcac055e5307cea96589e7c85fa0ce8>>
+ * @generated SignedSource<<81be45495ee6567db3d1bfb7ffecdbec>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -11,8 +11,9 @@
 import { ConcreteRequest, Mutation } from 'relay-runtime';
 export type FeatureFlagType = "BOOL" | "FLOAT" | "INT" | "JSON" | "STRING" | "%future added value";
 export type CreateFeatureFlagInput = {
-  currentVariation: number;
+  defaultVariation: number;
   description?: string | null;
+  environmentVariations: Record<string, number>;
   key: string;
   type: FeatureFlagType;
   variations: ReadonlyArray<FeatureFlagVariationInput>;

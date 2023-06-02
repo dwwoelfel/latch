@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<730d2d114e3fada80603d20fd16da69b>>
+ * @generated SignedSource<<f751e85e1c714bb0c93b8779b2b9a69c>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -15,7 +15,9 @@ export type IndexPageFlagsPaginationQuery$variables = {
   cursor?: string | null;
 };
 export type IndexPageFlagsPaginationQuery$data = {
-  readonly " $fragmentSpreads": FragmentRefs<"IndexPageFlags">;
+  readonly viewer: {
+    readonly " $fragmentSpreads": FragmentRefs<"IndexPageFlags">;
+  };
 };
 export type IndexPageFlagsPaginationQuery = {
   response: IndexPageFlagsPaginationQuery$data;
@@ -46,7 +48,14 @@ v1 = [
     "name": "first",
     "variableName": "count"
   }
-];
+],
+v2 = {
+  "alias": null,
+  "args": null,
+  "kind": "ScalarField",
+  "name": "id",
+  "storageKey": null
+};
 return {
   "fragment": {
     "argumentDefinitions": (v0/*: any*/),
@@ -55,20 +64,31 @@ return {
     "name": "IndexPageFlagsPaginationQuery",
     "selections": [
       {
-        "args": [
+        "alias": null,
+        "args": null,
+        "concreteType": "Viewer",
+        "kind": "LinkedField",
+        "name": "viewer",
+        "plural": false,
+        "selections": [
           {
-            "kind": "Variable",
-            "name": "count",
-            "variableName": "count"
-          },
-          {
-            "kind": "Variable",
-            "name": "cursor",
-            "variableName": "cursor"
+            "args": [
+              {
+                "kind": "Variable",
+                "name": "count",
+                "variableName": "count"
+              },
+              {
+                "kind": "Variable",
+                "name": "cursor",
+                "variableName": "cursor"
+              }
+            ],
+            "kind": "FragmentSpread",
+            "name": "IndexPageFlags"
           }
         ],
-        "kind": "FragmentSpread",
-        "name": "IndexPageFlags"
+        "storageKey": null
       }
     ],
     "type": "Query",
@@ -82,69 +102,102 @@ return {
     "selections": [
       {
         "alias": null,
-        "args": (v1/*: any*/),
-        "concreteType": "FeatureFlagsConnection",
+        "args": null,
+        "concreteType": "Viewer",
         "kind": "LinkedField",
-        "name": "featureFlags",
+        "name": "viewer",
         "plural": false,
         "selections": [
           {
             "alias": null,
-            "args": null,
-            "concreteType": "FeatureFlagsEdge",
+            "args": (v1/*: any*/),
+            "concreteType": "FeatureFlagsConnection",
             "kind": "LinkedField",
-            "name": "edges",
-            "plural": true,
+            "name": "featureFlags",
+            "plural": false,
             "selections": [
               {
                 "alias": null,
                 "args": null,
-                "concreteType": "FeatureFlag",
+                "concreteType": "FeatureFlagsEdge",
                 "kind": "LinkedField",
-                "name": "node",
-                "plural": false,
+                "name": "edges",
+                "plural": true,
                 "selections": [
                   {
                     "alias": null,
                     "args": null,
-                    "kind": "ScalarField",
-                    "name": "key",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "type",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "description",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "generation",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "concreteType": "FeatureFlagVariation",
+                    "concreteType": "FeatureFlag",
                     "kind": "LinkedField",
-                    "name": "variations",
-                    "plural": true,
+                    "name": "node",
+                    "plural": false,
                     "selections": [
                       {
                         "alias": null,
                         "args": null,
                         "kind": "ScalarField",
-                        "name": "value",
+                        "name": "key",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "type",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "description",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "generation",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "concreteType": "FeatureFlagVariation",
+                        "kind": "LinkedField",
+                        "name": "variations",
+                        "plural": true,
+                        "selections": [
+                          {
+                            "alias": null,
+                            "args": null,
+                            "kind": "ScalarField",
+                            "name": "value",
+                            "storageKey": null
+                          }
+                        ],
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "defaultVariation",
+                        "storageKey": null
+                      },
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "environmentVariations",
+                        "storageKey": null
+                      },
+                      (v2/*: any*/),
+                      {
+                        "alias": null,
+                        "args": null,
+                        "kind": "ScalarField",
+                        "name": "__typename",
                         "storageKey": null
                       }
                     ],
@@ -154,21 +207,7 @@ return {
                     "alias": null,
                     "args": null,
                     "kind": "ScalarField",
-                    "name": "currentVariation",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "id",
-                    "storageKey": null
-                  },
-                  {
-                    "alias": null,
-                    "args": null,
-                    "kind": "ScalarField",
-                    "name": "__typename",
+                    "name": "cursor",
                     "storageKey": null
                   }
                 ],
@@ -177,8 +216,26 @@ return {
               {
                 "alias": null,
                 "args": null,
-                "kind": "ScalarField",
-                "name": "cursor",
+                "concreteType": "PageInfo",
+                "kind": "LinkedField",
+                "name": "pageInfo",
+                "plural": false,
+                "selections": [
+                  {
+                    "alias": null,
+                    "args": null,
+                    "kind": "ScalarField",
+                    "name": "endCursor",
+                    "storageKey": null
+                  },
+                  {
+                    "alias": null,
+                    "args": null,
+                    "kind": "ScalarField",
+                    "name": "hasNextPage",
+                    "storageKey": null
+                  }
+                ],
                 "storageKey": null
               }
             ],
@@ -186,54 +243,30 @@ return {
           },
           {
             "alias": null,
-            "args": null,
-            "concreteType": "PageInfo",
-            "kind": "LinkedField",
-            "name": "pageInfo",
-            "plural": false,
-            "selections": [
-              {
-                "alias": null,
-                "args": null,
-                "kind": "ScalarField",
-                "name": "endCursor",
-                "storageKey": null
-              },
-              {
-                "alias": null,
-                "args": null,
-                "kind": "ScalarField",
-                "name": "hasNextPage",
-                "storageKey": null
-              }
-            ],
-            "storageKey": null
-          }
+            "args": (v1/*: any*/),
+            "filters": null,
+            "handle": "connection",
+            "key": "IndexPage_featureFlags",
+            "kind": "LinkedHandle",
+            "name": "featureFlags"
+          },
+          (v2/*: any*/)
         ],
         "storageKey": null
-      },
-      {
-        "alias": null,
-        "args": (v1/*: any*/),
-        "filters": null,
-        "handle": "connection",
-        "key": "IndexPage_featureFlags",
-        "kind": "LinkedHandle",
-        "name": "featureFlags"
       }
     ]
   },
   "params": {
-    "cacheID": "8058556a3c27e2e30597d06a270ee00a",
+    "cacheID": "6a1b03054cbb9b464753bdd25545db7c",
     "id": null,
     "metadata": {},
     "name": "IndexPageFlagsPaginationQuery",
     "operationKind": "query",
-    "text": "query IndexPageFlagsPaginationQuery(\n  $count: Int = 10\n  $cursor: String\n) {\n  ...IndexPageFlags_1G22uz\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  currentVariation\n}\n\nfragment IndexPageFlags_1G22uz on Query {\n  featureFlags(first: $count, after: $cursor) {\n    edges {\n      node {\n        key\n        ...IndexPageFlagRow\n        id\n        __typename\n      }\n      cursor\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n}\n"
+    "text": "query IndexPageFlagsPaginationQuery(\n  $count: Int = 10\n  $cursor: String\n) {\n  viewer {\n    ...IndexPageFlags_1G22uz\n    id\n  }\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  defaultVariation\n  environmentVariations\n}\n\nfragment IndexPageFlags_1G22uz on Viewer {\n  featureFlags(first: $count, after: $cursor) {\n    edges {\n      node {\n        key\n        ...IndexPageFlagRow\n        id\n        __typename\n      }\n      cursor\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n}\n"
   }
 };
 })();
 
-(node as any).hash = "6011efa3e738c5d033c179e0e979fd51";
+(node as any).hash = "3b6d6d46db36a8ac5e89d64fd06cd7bb";
 
 export default node;

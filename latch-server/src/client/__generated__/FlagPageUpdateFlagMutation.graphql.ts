@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<a651a46d790d1c091aac0e98ea79369c>>
+ * @generated SignedSource<<dcd6a03c753737141a1d7309fd3df018>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -16,8 +16,9 @@ export type UpdateFeatureFlagInput = {
   patch: FeatureFlagPatch;
 };
 export type FeatureFlagPatch = {
-  currentVariation?: number | null;
+  defaultVariation?: number | null;
   description?: string | null;
+  environmentVariations?: Record<string, number> | null;
   variations?: ReadonlyArray<FeatureFlagVariationInput> | null;
 };
 export type FeatureFlagVariationInput = {
@@ -84,10 +85,17 @@ v4 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
-  "name": "currentVariation",
+  "name": "defaultVariation",
   "storageKey": null
 },
-v5 = [
+v5 = {
+  "alias": null,
+  "args": null,
+  "kind": "ScalarField",
+  "name": "environmentVariations",
+  "storageKey": null
+},
+v6 = [
   {
     "kind": "Literal",
     "name": "first",
@@ -183,9 +191,10 @@ return {
               },
               (v3/*: any*/),
               (v4/*: any*/),
+              (v5/*: any*/),
               {
                 "alias": null,
-                "args": (v5/*: any*/),
+                "args": (v6/*: any*/),
                 "concreteType": "FeatureFlagVersionsConnection",
                 "kind": "LinkedField",
                 "name": "previousVersions",
@@ -217,6 +226,7 @@ return {
                           (v2/*: any*/),
                           (v3/*: any*/),
                           (v4/*: any*/),
+                          (v5/*: any*/),
                           {
                             "alias": null,
                             "args": null,
@@ -267,7 +277,7 @@ return {
               },
               {
                 "alias": null,
-                "args": (v5/*: any*/),
+                "args": (v6/*: any*/),
                 "filters": null,
                 "handle": "connection",
                 "key": "FlagPage_previousVersions",
@@ -290,12 +300,12 @@ return {
     ]
   },
   "params": {
-    "cacheID": "ecc6a1ae09fccb033b15a8f9ab0a44e9",
+    "cacheID": "69e0e4b05d60c7d36bc71eb81cd6b926",
     "id": null,
     "metadata": {},
     "name": "FlagPageUpdateFlagMutation",
     "operationKind": "mutation",
-    "text": "mutation FlagPageUpdateFlagMutation(\n  $input: UpdateFeatureFlagInput!\n) {\n  updateFeatureFlag(input: $input) {\n    featureFlag {\n      ...IndexPageFlagRow\n      ...FlagPageFlag\n      id\n    }\n  }\n}\n\nfragment FlagPageFlag on FeatureFlag {\n  key\n  generation\n  type\n  description\n  variations {\n    value\n    description\n  }\n  currentVariation\n  ...FlagPageHistory\n}\n\nfragment FlagPageHistory on FeatureFlag {\n  previousVersions(first: 5) {\n    edges {\n      cursor\n      node {\n        description\n        variations {\n          value\n          description\n        }\n        currentVariation\n        timeDeleted\n        __typename\n      }\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n  type\n  description\n  variations {\n    value\n    description\n  }\n  currentVariation\n  id\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  currentVariation\n}\n"
+    "text": "mutation FlagPageUpdateFlagMutation(\n  $input: UpdateFeatureFlagInput!\n) {\n  updateFeatureFlag(input: $input) {\n    featureFlag {\n      ...IndexPageFlagRow\n      ...FlagPageFlag\n      id\n    }\n  }\n}\n\nfragment FlagPageFlag on FeatureFlag {\n  key\n  generation\n  type\n  description\n  variations {\n    value\n    description\n  }\n  defaultVariation\n  environmentVariations\n  ...FlagPageHistory\n}\n\nfragment FlagPageHistory on FeatureFlag {\n  previousVersions(first: 5) {\n    edges {\n      cursor\n      node {\n        description\n        variations {\n          value\n          description\n        }\n        defaultVariation\n        environmentVariations\n        timeDeleted\n        __typename\n      }\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n  type\n  description\n  variations {\n    value\n    description\n  }\n  defaultVariation\n  environmentVariations\n  id\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  defaultVariation\n  environmentVariations\n}\n"
   }
 };
 })();

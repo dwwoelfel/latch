@@ -2,18 +2,32 @@
 
 scalar JSON
 
+scalar VariationByEnvironment
+
 schema {
   query: Query
   mutation: Mutation
 }
 
 type Query {
+  testVariationByEnvironment(
+    input: VariationByEnvironment
+  ): VariationByEnvironment
   node(id: ID!): Node
+  viewer: Viewer!
+}
+
+type Viewer implements Node {
+  id: ID!
   featureFlag(key: String!): FeatureFlag
   featureFlags(first: Int = 10, after: String): FeatureFlagsConnection!
+  topicSubscriptions: [TopicSubscription!]!
+  environments: [Environment!]!
 }
 
 type Mutation {
+  createEnvironment(input: CreateEnvironmentInput!): CreateEnvironmentPayload!
+  updateEnvironment(input: UpdateEnvironmentInput!): UpdateEnvironmentPayload!
   createFeatureFlag(input: CreateFeatureFlagInput!): CreateFeatureFlagPayload!
   updateFeatureFlag(input: UpdateFeatureFlagInput!): UpdateFeatureFlagPayload!
 }
@@ -43,12 +57,24 @@ type FeatureFlag implements Node {
   generation: String!
   description: String
   variations: [FeatureFlagVariation!]!
-  currentVariation: Int!
+  defaultVariation: Int!
+  environmentVariations: VariationByEnvironment!
   type: FeatureFlagType!
   previousVersions(
     first: Int = 10
     after: String
   ): FeatureFlagVersionsConnection!
+}
+
+type TopicSubscription {
+  name: String!
+  hostname: String
+  consoleUrl: String!
+}
+
+type Environment {
+  name: String!
+  color: String!
 }
 
 type FeatureFlagVariation {
@@ -60,7 +86,8 @@ type FeatureFlagVersion {
   generation: String!
   description: String
   variations: [FeatureFlagVariation!]!
-  currentVariation: Int!
+  defaultVariation: Int!
+  environmentVariations: VariationByEnvironment!
   timeDeleted: String!
 }
 
@@ -96,7 +123,8 @@ input CreateFeatureFlagInput {
   type: FeatureFlagType!
   description: String
   variations: [FeatureFlagVariationInput!]!
-  currentVariation: Int!
+  defaultVariation: Int!
+  environmentVariations: VariationByEnvironment!
 }
 
 type CreateFeatureFlagPayload {
@@ -106,7 +134,8 @@ type CreateFeatureFlagPayload {
 input FeatureFlagPatch {
   description: String
   variations: [FeatureFlagVariationInput!]
-  currentVariation: Int
+  defaultVariation: Int
+  environmentVariations: VariationByEnvironment
 }
 
 input UpdateFeatureFlagInput {
@@ -117,4 +146,28 @@ input UpdateFeatureFlagInput {
 
 type UpdateFeatureFlagPayload {
   featureFlag: FeatureFlag!
+}
+
+input CreateEnvironmentInput {
+  name: String!
+  color: String!
+}
+
+type CreateEnvironmentPayload {
+  environment: Environment!
+  viewer: Viewer!
+}
+
+input UpdateEnvironmentPatch {
+  color: String!
+}
+
+input UpdateEnvironmentInput {
+  name: String!
+  patch: UpdateEnvironmentPatch!
+}
+
+type UpdateEnvironmentPayload {
+  environment: Environment!
+  viewer: Viewer!
 }

@@ -22,14 +22,16 @@ import {
 import favicon from './favicon.js';
 // @ts-expect-error: uses esbuild binary loader
 import logo from './logo.js';
+import {Topic} from '@google-cloud/pubsub';
 
 declare module 'fastify' {
   interface FastifyRequest {
     bucket: Bucket;
+    topic: Topic;
   }
 }
 
-async function setupVite({bucket}: {bucket: Bucket}) {
+async function setupVite({bucket, topic}: {bucket: Bucket; topic: Topic}) {
   const vite = await createViteServer({
     server: {middlewareMode: true},
     plugins: [
@@ -60,9 +62,13 @@ async function setupVite({bucket}: {bucket: Bucket}) {
     const res = await execute({
       schema,
       document: parse(request.text),
-      contextValue: createContext({bucket: bucket}),
+      contextValue: createContext({bucket, topic}),
       variableValues: variables,
     });
+
+    if (res.errors?.length) {
+      console.log('Errors', JSON.stringify(res.errors));
+    }
 
     return res as GraphQLResponse;
   };
@@ -157,16 +163,28 @@ const graphqlHandler: Handler<GraphQLHandlerProps> = async (request) => {
     return {errors: validationErrors};
   }
 
-  return await execute({
+  const res = await execute({
     schema,
     document: document,
-    contextValue: createContext({bucket: request.bucket}),
+    contextValue: createContext({bucket: request.bucket, topic: request.topic}),
     variableValues: request.body.variables,
     operationName: request.body.operationName,
   });
+
+  if (res.errors?.length) {
+    console.log('errors', JSON.stringify(res.errors));
+  }
+
+  return res;
 };
 
-export async function createServer({bucket}: {bucket: Bucket}) {
+export async function createServer({
+  bucket,
+  topic,
+}: {
+  bucket: Bucket;
+  topic: Topic;
+}) {
   const server = fastify({
     logger: true,
   });
@@ -175,6 +193,7 @@ export async function createServer({bucket}: {bucket: Bucket}) {
 
   server.addHook('onRequest', async (request) => {
     request.bucket = bucket;
+    request.topic = topic;
   });
 
   server.post<GraphQLHandlerProps>('/graphql', graphqlHandler);
@@ -198,7 +217,7 @@ export async function createServer({bucket}: {bucket: Bucket}) {
       .send(Buffer.from(favicon)),
   );
 
-  const {vite, catchallHandler} = await setupVite({bucket: bucket});
+  const {vite, catchallHandler} = await setupVite({bucket, topic});
   server.use(vite.middlewares);
   server.get('*', catchallHandler);
 

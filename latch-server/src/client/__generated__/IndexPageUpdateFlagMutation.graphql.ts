@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<0593b8d35574edfc6039276893b6c0b2>>
+ * @generated SignedSource<<3c15a6c6f2244b60934d09e2a1cac293>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -16,8 +16,9 @@ export type UpdateFeatureFlagInput = {
   patch: FeatureFlagPatch;
 };
 export type FeatureFlagPatch = {
-  currentVariation?: number | null;
+  defaultVariation?: number | null;
   description?: string | null;
+  environmentVariations?: Record<string, number> | null;
   variations?: ReadonlyArray<FeatureFlagVariationInput> | null;
 };
 export type FeatureFlagVariationInput = {
@@ -164,7 +165,14 @@ return {
                 "alias": null,
                 "args": null,
                 "kind": "ScalarField",
-                "name": "currentVariation",
+                "name": "defaultVariation",
+                "storageKey": null
+              },
+              {
+                "alias": null,
+                "args": null,
+                "kind": "ScalarField",
+                "name": "environmentVariations",
                 "storageKey": null
               },
               {
@@ -183,12 +191,12 @@ return {
     ]
   },
   "params": {
-    "cacheID": "94bf8f3308679ee488b768266a698093",
+    "cacheID": "d419405ebe759c2aa7b7aee605b535ac",
     "id": null,
     "metadata": {},
     "name": "IndexPageUpdateFlagMutation",
     "operationKind": "mutation",
-    "text": "mutation IndexPageUpdateFlagMutation(\n  $input: UpdateFeatureFlagInput!\n) {\n  updateFeatureFlag(input: $input) {\n    featureFlag {\n      ...IndexPageFlagRow\n      id\n    }\n  }\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  currentVariation\n}\n"
+    "text": "mutation IndexPageUpdateFlagMutation(\n  $input: UpdateFeatureFlagInput!\n) {\n  updateFeatureFlag(input: $input) {\n    featureFlag {\n      ...IndexPageFlagRow\n      id\n    }\n  }\n}\n\nfragment IndexPageFlagRow on FeatureFlag {\n  key\n  type\n  description\n  generation\n  variations {\n    value\n  }\n  defaultVariation\n  environmentVariations\n}\n"
   }
 };
 })();

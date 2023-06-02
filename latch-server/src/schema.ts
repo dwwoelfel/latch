@@ -1,10 +1,17 @@
+import {Topic} from '@google-cloud/pubsub';
 import {Bucket, File} from '@google-cloud/storage';
 import {makeExecutableSchema} from '@graphql-tools/schema';
 import DataLoader from 'dataloader';
 import fs from 'fs';
-import {GraphQLError} from 'graphql';
+import {
+  GraphQLError,
+  GraphQLScalarType,
+  Kind,
+  ObjectValueNode,
+  ValueNode,
+} from 'graphql';
 import proto from 'protobufjs';
-import {Resolvers} from './resolvers-types';
+import {FeatureFlagType, Resolvers} from './resolvers-types';
 
 const sdl = fs.readFileSync('schema.graphql', 'utf-8');
 
@@ -22,6 +29,89 @@ function validateKeyName(key: string): string {
   return key;
 }
 
+const featureFlagTypeToEnum = {
+  boolean: FeatureFlagType.Bool,
+  integer: FeatureFlagType.Int,
+  float: FeatureFlagType.Float,
+  string: FeatureFlagType.String,
+  json: FeatureFlagType.Json,
+};
+
+const expectedType = {
+  boolean: 'boolean',
+  integer: 'number',
+  float: 'number',
+  string: 'string',
+};
+
+const enumToFeatureFlagType: Record<
+  FeatureFlagType,
+  keyof typeof featureFlagTypeToEnum
+> = {
+  BOOL: 'boolean',
+  INT: 'integer',
+  FLOAT: 'float',
+  STRING: 'string',
+  JSON: 'json',
+};
+
+function validateType(type: keyof typeof featureFlagTypeToEnum, value: any) {
+  if (type === 'json') {
+    return value;
+  }
+  if (typeof value !== expectedType[type]) {
+    throw new GraphQLError(
+      `Expected \`${value}\` to be of type ${type}, got ${typeof type}.`,
+    );
+  }
+
+  if (type === 'integer' && !Number.isInteger(value)) {
+    throw new GraphQLError(`Expected \`${value}\` to be an integer.`);
+  }
+
+  return value;
+}
+
+function validateFlag(flag: FlagValue): FlagValue {
+  validateKeyName(flag.key);
+  if (flag.variations.length === 0) {
+    throw new GraphQLError('Must include at least one variation.');
+  }
+  // TODO: Validate that variations are all of the correct type
+  if (flag.variations[flag.defaultVariation] === undefined) {
+    throw new GraphQLError(
+      'The default variation must be one the listed variations.',
+    );
+  }
+
+  for (const [key, value] of Object.entries(flag.environmentVariations)) {
+    if (!flag.variations[value] === undefined) {
+      throw new GraphQLError(
+        `The default variation for ${key} must be one the listed variations.`,
+      );
+    }
+  }
+
+  for (const variation of flag.variations) {
+    validateType(flag.type, variation.value);
+  }
+  return flag;
+}
+
+function validateEnvironmentName(key: string): string {
+  if (key.length > 1024) {
+    throw new GraphQLError(
+      'The environment name must be fewer than 1024 characters',
+    );
+  }
+  if (!key.match(/^[A-Za-z0-9_-]+$/)) {
+    throw new GraphQLError(
+      'The environment name can only contain letters, numbers, underscores, and hyphens.',
+    );
+  }
+  return key;
+}
+
 type FlagKey = {
   key: string;
   generation?: string;
@@ -29,10 +119,11 @@ type FlagKey = {
 
 type FlagValue = {
   key: string;
-  variations: {value: any; description?: string}[];
-  currentVariation: number;
+  variations: {value: any; description?: string | null | undefined}[];
+  defaultVariation: number;
+  environmentVariations: {[key: string]: number};
   description?: string | null | undefined;
-  type: string;
+  type: keyof typeof featureFlagTypeToEnum;
 };
 
 type FlagLoader = DataLoader<FlagKey, FlagValue, string>;
@@ -41,6 +132,7 @@ type FlagMetaLoader = DataLoader<FlagKey, {key: string; generation: string}>;
 
 export type Context = {
   bucket: Bucket;
+  topic: Topic;
   flagLoader: FlagLoader;
   metaLoader: FlagMetaLoader;
 };
@@ -60,9 +152,21 @@ export type FeatureFlagVersionSource = {
   timeDeleted: string;
 };
 
-export function createContext({bucket}: {bucket: Bucket}) {
+export type ViewerSource = {
+  __typename: 'Viewer';
+};
+
+export function createContext({
+  bucket,
+  topic,
+}: {
+  bucket: Bucket;
+  topic: Topic;
+}): Context {
+  topic.getSubscriptions;
   return {
     bucket,
+    topic,
     flagLoader: new DataLoader<FlagKey, FlagValue, string>(
       async ([{key, generation}]) => {
         console.time('download ' + key + ' ' + generation);
@@ -137,28 +241,12 @@ function createPageToken({
   return proto.util.base64.encode(b, 0, b.length);
 }
 
-const featureFlagTypeToEnum = {
-  boolean: 'BOOL',
-  integer: 'INT',
-  float: 'FLOAT',
-  string: 'STRING',
-  json: 'JSON',
-};
-
-const enumToFeatureFlagType = {
-  BOOL: 'boolean',
-  INT: 'integer',
-  FLOAT: 'float',
-  STRING: 'string',
-  JSON: 'json',
-};
-
 function keyOfObjName(name: string): string {
   return name.replace('flags/', '');
 }
 
 type NodeId = {
-  typeName: 'FeatureFlag';
+  typeName: 'FeatureFlag' | 'Viewer';
   naturalId: string;
 };
 
@@ -170,8 +258,8 @@ function decodeNodeId(id: string): NodeId {
   const [typeName, naturalId] = Buffer.from(id, 'hex')
     .toString('utf-8')
     .split(':');
-  // TODO: Will have to patch this if we add more node types
-  if (typeName !== 'FeatureFlag') {
+  // TODO: Better way to check this
+  if (typeName !== 'FeatureFlag' && typeName !== 'Viewer') {
     throw new GraphQLError('Invalid node id.');
   }
 
@@ -186,21 +274,178 @@ function fromHex(s: string): string {
   return Buffer.from(s, 'hex').toString('utf-8');
 }
 
-export const resolvers: Resolvers = {
-  Node: {
-    __resolveType() {
-      // TODO: will need to fix if we add more node types
-      return 'FeatureFlag';
+type VariationByEnvironment = {[key: string]: number};
+
+function ensureStringToInt(value: any): VariationByEnvironment {
+  if (typeof value !== 'object' || value === null) {
+    throw new GraphQLError(
+      `VariationByEnvironment cannot represent non-object value ${value}`,
+    );
+  }
+  for (const [key, v] of Object.entries(value)) {
+    if (typeof key !== 'string') {
+      throw new GraphQLError(
+        `VariationByEnvironment cannot represent object with non-string key ${key}`,
+      );
+    }
+    if (typeof v !== 'number') {
+      throw new GraphQLError(
+        `VariationByEnvironment cannot represent object with non-integer value ${v} for key ${key}`,
+      );
+    }
+    if (!Number.isInteger(v)) {
+      throw new GraphQLError(
+        `VariationByEnvironment cannot represent object with non-integer value ${v} for key ${key}`,
+      );
+    }
+  }
+  return value;
+}
+
+const VariationByEnvironment = new GraphQLScalarType({
+  name: 'VariationByEnvironment',
+  description: 'An object with string keys and integer values.',
+  serialize(outputValue) {
+    return ensureStringToInt(outputValue);
+  },
+  parseValue(inputValue) {
+    return ensureStringToInt(inputValue);
+  },
+  parseLiteral(ast) {
+    if (ast.kind !== Kind.OBJECT) {
+      throw new GraphQLError('VariationByEnvironment value must be an object');
+    }
+    const value: VariationByEnvironment = {};
+
+    for (const field of ast.fields) {
+      if (field.kind === Kind.OBJECT_FIELD) {
+        if (field.value.kind !== Kind.INT) {
+          throw new GraphQLError(
+            `VariationByEnvironment value must be an integer. Got ${field.value.kind} for field ${field.name.value}.`,
+          );
+        }
+        value[field.name.value] = Number(field.value.value);
+      } else {
+        console.error('ERROR', field);
+        throw new GraphQLError(
+          'VariationByEnvironment fields must be object fields.',
+        );
+      }
+    }
+
+    return value;
+  },
+  extensions: {
+    codegenScalarType: 'Record<string, number>',
+    jsonSchema: {
+      title: 'VariationByEnvironment',
+      type: 'object',
+      additionalProperties: {
+        type: 'integer',
+      },
     },
   },
+});
+
+function parseObject(ast: ObjectValueNode, variables: any): any {
+  const value = Object.create(null);
+  ast.fields.forEach((field) => {
+    value[field.name.value] = parseLiteral(field.value, variables);
+  });
+
+  return value;
+}
+
+function parseLiteral(ast: ValueNode, variables: any): any {
+  switch (ast.kind) {
+    case Kind.STRING:
+    case Kind.BOOLEAN:
+      return ast.value;
+    case Kind.INT:
+    case Kind.FLOAT:
+      return parseFloat(ast.value);
+    case Kind.OBJECT:
+      return parseObject(ast, variables);
+    case Kind.LIST:
+      return ast.values.map((n) => parseLiteral(n, variables));
+    case Kind.NULL:
+      return null;
+    case Kind.VARIABLE: {
+      const name = ast.name.value;
+      return variables ? variables[name] : undefined;
+    }
+  }
+}
+
+const JSONScalar = new GraphQLScalarType({
+  name: 'JSON',
+  description:
+    'The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).',
+  serialize(v) {
+    return v;
+  },
+  parseValue(v) {
+    return v;
+  },
+  parseLiteral,
+});
+
+type FlagMetadata = {
+  type: keyof typeof featureFlagTypeToEnum;
+  defaultValue: string;
+} & {[key: string]: string};
+
+function fileMetadata(flag: FlagValue): FlagMetadata | undefined {
+  const metadata = {
+    type: flag.type,
+    defaultValue: JSON.stringify(flag.variations[flag.defaultVariation].value),
+  };
+
+  for (const [key, value] of Object.entries(flag.environmentVariations)) {
+    (metadata as {[key: string]: string})[`env:${key}`] = JSON.stringify(
+      flag.variations[value].value,
+    );
+  }
+
+  let sts = '';
+  for (const [k, v] of Object.entries(metadata)) {
+    sts += k.length;
+    sts += v.length;
+  }
+
+  if (new Blob([sts]).size >= 8192) {
+    return undefined;
+  }
+
+  return metadata;
+}
+
+export const resolvers: Resolvers = {
+  Node: {
+    __resolveType(parent) {
+      // @ts-expect-error: We add this in the Query.node resolver
+      return parent.__typename;
+    },
+  },
+  VariationByEnvironment,
+  JSON: JSONScalar,
   Query: {
+    testVariationByEnvironment(_parent, args) {
+      return args.input;
+    },
+    viewer() {
+      return {__typename: 'Viewer'};
+    },
     async node(_parent, args, context) {
       const {typeName, naturalId} = decodeNodeId(String(args.id));
       switch (typeName) {
-        case 'FeatureFlag':
+        case 'FeatureFlag': {
           context.metaLoader.load({key: naturalId}).catch((_e) => null);
           try {
-            return await context.flagLoader.load({key: naturalId});
+            const data: FeatureFlagSource = await context.flagLoader.load({
+              key: naturalId,
+            });
+            return {...data, __typename: 'FeatureFlag'} as FeatureFlagSource;
           } catch (e) {
             if ((e as any).code === 404) {
               return null;
@@ -208,7 +453,16 @@ export const resolvers: Resolvers = {
               throw e;
             }
           }
+        }
+        case 'Viewer': {
+          return {__typename: 'Viewer'};
+        }
       }
+    },
+  },
+  Viewer: {
+    id() {
+      return encodeNodeId({typeName: 'Viewer', naturalId: 'Viewer'});
     },
     async featureFlag(_parent, args, context) {
       try {
@@ -246,31 +500,84 @@ export const resolvers: Resolvers = {
 
       return [files, nextQuery, metadata];
     },
+    async topicSubscriptions(_parent, _args, context) {
+      const [subs] = await context.topic.getSubscriptions({
+        pageSize: 1000,
+        autoPaginate: true,
+      });
+      return subs;
+    },
+    async environments(_parent, _args, context) {
+      const [files] = await context.bucket.getFiles({
+        prefix: 'environments',
+        autoPaginate: true,
+      });
+      return files.map((file) => {
+        return {
+          name: file.name.replace('environments/', ''),
+          color: file.metadata.metadata.color,
+        };
+      });
+    },
   },
   Mutation: {
+    async createEnvironment(_parent, args, context) {
+      const name = validateEnvironmentName(args.input.name);
+      const file = context.bucket.file(`environments/${name}`);
+      await file.save('{}', {
+        metadata: {
+          metadata: {
+            color: args.input.color,
+          },
+        },
+      });
+      const [envFile] = await file.get();
+      return {
+        environment: {
+          name: envFile.name.replace('environments/', ''),
+          color: envFile.metadata.metadata.color,
+        },
+        viewer: {__typename: 'Viewer'},
+      };
+    },
+    async updateEnvironment(_parent, args, context) {
+      const name = validateEnvironmentName(args.input.name);
+      const file = context.bucket.file(`environments/${name}`);
+      await file.save('{}', {
+        metadata: {
+          metadata: {
+            color: args.input.patch.color,
+          },
+        },
+      });
+      const [envFile] = await file.get();
+      return {
+        environment: {
+          name: envFile.name.replace('environments/', ''),
+          color: envFile.metadata.metadata.color,
+        },
+        viewer: {__typename: 'Viewer'},
+      };
+    },
     async createFeatureFlag(_parent, args, context) {
-      const key = validateKeyName(args.input.key);
-      if (args.input.variations.length === 0) {
-        throw new GraphQLError('Must include at least one variation.');
-      }
-      // TODO: Validate that variations are all of the correct type
-      if (!args.input.variations[args.input.currentVariation]) {
-        throw new GraphQLError(
-          'The current variation must be one the listed variations.',
-        );
-      }
-      const file = context.bucket.file(`flags/${key}`);
-      const flagValue = JSON.stringify({
-        key: key,
+      const newFlag: FlagValue = validateFlag({
+        key: args.input.key,
         type: enumToFeatureFlagType[args.input.type],
         variations: args.input.variations,
-        currentVariation: args.input.currentVariation,
+        defaultVariation: args.input.defaultVariation,
         description: args.input.description,
+        environmentVariations: args.input.environmentVariations,
       });
+
+      const file = context.bucket.file(`flags/${newFlag.key}`);
+      const flagValue = JSON.stringify(newFlag);
       try {
         await file.save(flagValue, {
           preconditionOpts: {
             ifGenerationMatch: 0,
+          },
+          metadata: {
+            metadata: fileMetadata(newFlag),
           },
         });
       } catch (e) {
@@ -284,33 +591,29 @@ export const resolvers: Resolvers = {
         }
       }
       return {
-        featureFlag: {key},
+        featureFlag: {key: newFlag.key},
       };
     },
     async updateFeatureFlag(_parent, args, context) {
-      const flag = await context.flagLoader.load({key: args.input.key});
+      const oldFlag = await context.flagLoader.load({key: args.input.key});
       const patch = args.input.patch;
-      const newFlag = {
-        ...flag,
-        variations: patch.variations || flag.variations,
-        currentVariation:
-          patch.currentVariation != null
-            ? patch.currentVariation
-            : flag.currentVariation,
+      const newFlag: FlagValue = validateFlag({
+        ...oldFlag,
+        variations: patch.variations || oldFlag.variations,
+        defaultVariation:
+          patch.defaultVariation != null
+            ? patch.defaultVariation
+            : oldFlag.defaultVariation,
         description:
           patch.description !== undefined
             ? patch.description
-            : flag.description,
-      };
-      if (newFlag.variations.length === 0) {
-        throw new GraphQLError('Must include at least one variation.');
-      }
-      // TODO: Validate that variations are all of the correct type
-      if (!newFlag.variations[newFlag.currentVariation]) {
-        throw new GraphQLError(
-          'The current variation must be one the listed variations.',
-        );
-      }
+            : oldFlag.description,
+        environmentVariations:
+          patch.environmentVariations !== undefined
+            ? patch.environmentVariations
+            : oldFlag.environmentVariations,
+      });
+
       const file = context.bucket.file(`flags/${args.input.key}`);
       const flagValue = JSON.stringify(newFlag);
       try {
@@ -318,9 +621,13 @@ export const resolvers: Resolvers = {
         // @ts-expect-error: we get the value as a string, so we'll pass it as
         //                   a string in case it doesn't fit in a js number
         const ifGenerationMatch = generation as number;
+
         await file.save(flagValue, {
           preconditionOpts: {
             ifGenerationMatch,
+          },
+          metadata: {
+            metadata: fileMetadata(newFlag),
           },
         });
         context.flagLoader.clear({key: args.input.key});
@@ -340,6 +647,28 @@ export const resolvers: Resolvers = {
       };
     },
   },
+  Environment: {
+    name(parent) {
+      return parent.name;
+    },
+    color(parent) {
+      return parent.color;
+    },
+  },
+  TopicSubscription: {
+    name(parent) {
+      return parent.name.split('/').slice(-1)[0];
+    },
+    async hostname(parent) {
+      const [metadata] = await parent.getMetadata();
+      return metadata?.labels?.hostname || null;
+    },
+    consoleUrl(parent) {
+      const name = parent.name.split('/').slice(-1)[0];
+      const projectId = parent.projectId;
+      return `https://console.cloud.google.com/cloudpubsub/subscription/detail/${name}?project=${projectId}`;
+    },
+  },
   FeatureFlag: {
     id(parent) {
       return encodeNodeId({typeName: 'FeatureFlag', naturalId: parent.key});
@@ -357,13 +686,16 @@ export const resolvers: Resolvers = {
     async variations(parent, _args, context) {
       return (await context.flagLoader.load(parent)).variations;
     },
-    async currentVariation(parent, _args, context) {
-      return (await context.flagLoader.load(parent)).currentVariation;
-    },    
+    async defaultVariation(parent, _args, context) {
+      return (await context.flagLoader.load(parent)).defaultVariation;
+    },
+    async environmentVariations(parent, _args, context) {
+      return (await context.flagLoader.load(parent)).environmentVariations;
+    },
     async type(parent, _args, context) {
       const flag = await context.flagLoader.load(parent);
-      // @ts-expect-error: This is probably fine
-      return featureFlagTypeToEnum[flag.type];
+      const res = featureFlagTypeToEnum[flag.type];
+      return res;
     },
     async previousVersions(parent, args, context) {
       const name = `flags/${parent.key}`;
@@ -524,8 +856,27 @@ export const resolvers: Resolvers = {
     async variations(parent, _args, context) {
       return (await context.flagLoader.load(parent)).variations;
     },
-    async currentVariation(parent, _args, context) {
-      return (await context.flagLoader.load(parent)).currentVariation;
+    async defaultVariation(parent, _args, context) {
+      return (await context.flagLoader.load(parent)).defaultVariation;
+    },
+    async environmentVariations(parent, _args, context) {
+      return (await context.flagLoader.load(parent)).environmentVariations;
+    },
+  },
+  CreateEnvironmentPayload: {
+    environment(parent) {
+      return parent.environment;
+    },
+    viewer() {
+      return {__typename: 'Viewer'};
+    },
+  },
+  UpdateEnvironmentPayload: {
+    environment(parent) {
+      return parent.environment;
+    },
+    viewer() {
+      return {__typename: 'Viewer'};
     },
   },
 };

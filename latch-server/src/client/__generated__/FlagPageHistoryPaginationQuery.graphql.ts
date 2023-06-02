@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<c68273394c7d9376efe9e25d1099f842>>
+ * @generated SignedSource<<c8c9d373311171fb4a981487be4e5b2d>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -99,7 +99,14 @@ v6 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
-  "name": "currentVariation",
+  "name": "defaultVariation",
+  "storageKey": null
+},
+v7 = {
+  "alias": null,
+  "args": null,
+  "kind": "ScalarField",
+  "name": "environmentVariations",
   "storageKey": null
 };
 return {
@@ -199,6 +206,7 @@ return {
                           (v4/*: any*/),
                           (v5/*: any*/),
                           (v6/*: any*/),
+                          (v7/*: any*/),
                           {
                             "alias": null,
                             "args": null,
@@ -259,7 +267,8 @@ return {
               },
               (v4/*: any*/),
               (v5/*: any*/),
-              (v6/*: any*/)
+              (v6/*: any*/),
+              (v7/*: any*/)
             ],
             "type": "FeatureFlag",
             "abstractKey": null
@@ -270,16 +279,16 @@ return {
     ]
   },
   "params": {
-    "cacheID": "5824eec5add1275aed7ee1f27d09cf45",
+    "cacheID": "10ea4430b4b565e2644ad730aecf8659",
     "id": null,
     "metadata": {},
     "name": "FlagPageHistoryPaginationQuery",
     "operationKind": "query",
-    "text": "query FlagPageHistoryPaginationQuery(\n  $count: Int = 5\n  $cursor: String\n  $id: ID!\n) {\n  node(id: $id) {\n    __typename\n    ...FlagPageHistory_1G22uz\n    id\n  }\n}\n\nfragment FlagPageHistory_1G22uz on FeatureFlag {\n  previousVersions(first: $count, after: $cursor) {\n    edges {\n      cursor\n      node {\n        description\n        variations {\n          value\n          description\n        }\n        currentVariation\n        timeDeleted\n        __typename\n      }\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n  type\n  description\n  variations {\n    value\n    description\n  }\n  currentVariation\n  id\n}\n"
+    "text": "query FlagPageHistoryPaginationQuery(\n  $count: Int = 5\n  $cursor: String\n  $id: ID!\n) {\n  node(id: $id) {\n    __typename\n    ...FlagPageHistory_1G22uz\n    id\n  }\n}\n\nfragment FlagPageHistory_1G22uz on FeatureFlag {\n  previousVersions(first: $count, after: $cursor) {\n    edges {\n      cursor\n      node {\n        description\n        variations {\n          value\n          description\n        }\n        defaultVariation\n        environmentVariations\n        timeDeleted\n        __typename\n      }\n    }\n    pageInfo {\n      endCursor\n      hasNextPage\n    }\n  }\n  type\n  description\n  variations {\n    value\n    description\n  }\n  defaultVariation\n  environmentVariations\n  id\n}\n"
   }
 };
 })();
 
-(node as any).hash = "18cc647c00e89d52626fa6538ddfc742";
+(node as any).hash = "50f1c8c18248a7302b14dfd0c593d08b";
 
 export default node;

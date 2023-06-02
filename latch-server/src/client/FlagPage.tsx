@@ -1,9 +1,9 @@
 import {
   ActionIcon,
-  Badge,
   Box,
   Button,
   Code,
+  ColorSwatch,
   Container,
   Flex,
   Group,
@@ -19,7 +19,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import {useForm} from '@mantine/form';
-import {IconTrash} from '@tabler/icons-react';
+import {IconRefresh, IconTrash} from '@tabler/icons-react';
 import {
   differenceInSeconds,
   format,
@@ -57,6 +57,10 @@ import {
   friendlyType,
   inputForType,
 } from './flagFormUtil.js';
+import {
+  FlagPageEnvironments$data,
+  FlagPageEnvironments$key,
+} from './__generated__/FlagPageEnvironments.graphql.js';
 
 //import graphql from 'babel-plugin-relay/macro';
 
@@ -81,7 +85,13 @@ export const loader = (
   };
 };
 
-function FlagDetail({flag}: {flag: FlagPageFlag$data}) {
+function FlagDetail({
+  flag,
+  viewer,
+}: {
+  flag: FlagPageFlag$data;
+  viewer: FlagPageEnvironments$data;
+}) {
   const [commit, isInFlight] = useMutation<FlagPageUpdateFlagMutation>(graphql`
     mutation FlagPageUpdateFlagMutation($input: UpdateFeatureFlagInput!) {
       updateFeatureFlag(input: $input) {
@@ -93,31 +103,46 @@ function FlagDetail({flag}: {flag: FlagPageFlag$data}) {
     }
   `);
 
-  const value = flag.variations[flag.currentVariation]?.value;
+  const value = flag.variations[flag.defaultVariation]?.value;
 
   const [isEditing, setIsEditing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const initialValues = {
+    variations: flag.variations.map((v) => ({
+      value: v.value,
+      description: v.description,
+    })),
+    defaultVariation: flag.defaultVariation,
+    environmentVariations: {...flag.environmentVariations},
+    description: flag.description || '',
+  };
   const form = useForm({
-    initialValues: {
-      variations: flag.variations.map((v) => ({
-        value: v.value,
-        description: v.description,
-      })),
-      currentVariation: flag.currentVariation,
-      description: flag.description || '',
-    },
+    initialValues: initialValues,
   });
+
+  const [resetSignal, setResetSignal] = useState(0);
+
+  useEffect(() => {
+    form.setValues(initialValues);
+    // TODO: Hook should complain about this
+  }, [resetSignal]);
 
   useEffect(() => {
     setSaveError(null);
   }, [form.values]);
 
   useEffect(() => {
-    const {variations, currentVariation} = form.values;
+    const {variations, defaultVariation, environmentVariations} = form.values;
 
-    if (currentVariation !== 0 && variations.length < currentVariation) {
-      form.setFieldValue('currentVariation', 0);
+    if (defaultVariation !== 0 && variations.length < defaultVariation) {
+      form.setFieldValue('defaultVariation', 0);
+    }
+
+    for (const [key, value] of Object.entries(environmentVariations)) {
+      if (value !== 0 && variations.length < value) {
+        form.setFieldValue(`environmentVariations.${key}`, 0);
+      }
     }
   }, [form]);
 
@@ -131,23 +156,23 @@ function FlagDetail({flag}: {flag: FlagPageFlag$data}) {
           patch: {
             description: values.description === '' ? null : values.description,
             variations: values.variations,
-            currentVariation: values.currentVariation,
+            defaultVariation: values.defaultVariation,
+            environmentVariations: values.environmentVariations,
           },
         };
         commit({
           variables: {input},
           onError(e) {
-            console.log('error', e);
+            console.error('error', e);
             // @ts-expect-error: Doesn't like the check for e.source
             setSaveError(e.source?.errors?.[0]?.message || e.message);
           },
-          onCompleted(resp, errors) {
+          onCompleted(_resp, errors) {
             if (errors) {
               setSaveError(errors?.[0]?.message || 'Unknown error.');
             } else {
-              console.log('resp', resp);
               setIsEditing(false);
-              form.reset();
+              setResetSignal((i) => i + 1);
             }
           },
         });
@@ -180,7 +205,7 @@ function FlagDetail({flag}: {flag: FlagPageFlag$data}) {
         </Box>
         <Box>
           <Text fz="sm" fw="bold">
-            Current variation
+            Default variation
           </Text>
           {isEditing ? (
             <Select
@@ -189,12 +214,41 @@ function FlagDetail({flag}: {flag: FlagPageFlag$data}) {
                 value: idx,
                 label: formatValue(flag.type, v.value),
               }))}
-              {...form.getInputProps('currentVariation')}
+              {...form.getInputProps('defaultVariation')}
             />
           ) : (
             <Text>{formatValue(flag.type, value)}</Text>
           )}
         </Box>
+        {viewer.environments.map((env) => {
+          return (
+            <Box key={env.name}>
+              <Text fz="sm" fw="bold">
+                {env.name} variation
+              </Text>
+              {isEditing ? (
+                <Select
+                  // @ts-expect-error: it doesn't like that I use a number for value, but it seems to work
+                  data={form.values.variations.map((v, idx) => ({
+                    value: idx,
+                    label: formatValue(flag.type, v.value),
+                  }))}
+                  {...form.getInputProps(`environmentVariations.${env.name}`)}
+                />
+              ) : (
+                <Text>
+                  {formatValue(
+                    flag.type,
+                    flag.variations[
+                      flag.environmentVariations[env.name] ??
+                        flag.defaultVariation
+                    ]?.value,
+                  )}
+                </Text>
+              )}
+            </Box>
+          );
+        })}
 
         <Box>
           <Text fz="sm" fw="bold">
@@ -222,10 +276,22 @@ function FlagDetail({flag}: {flag: FlagPageFlag$data}) {
                         </td>
                       ) : (
                         <td>
-                          {formatValue(flag.type, v.value)}{' '}
-                          {idx === flag.currentVariation ? (
-                            <Badge>current</Badge>
-                          ) : null}
+                          <Group spacing={'xs'}>
+                            {formatValue(flag.type, v.value)}{' '}
+                            {viewer.environments.flatMap((env) => {
+                              const envVariation =
+                                flag.environmentVariations[env.name] ??
+                                flag.defaultVariation;
+                              const dot = (
+                                <Tooltip
+                                  key={env.name}
+                                  label={`This variation is being served in ${env.name}`}>
+                                  <ColorSwatch size="1rem" color={env.color} />
+                                </Tooltip>
+                              );
+                              return envVariation === idx ? [dot] : [];
+                            })}
+                          </Group>
                         </td>
                       )}
                       <td>
@@ -259,21 +325,19 @@ function FlagDetail({flag}: {flag: FlagPageFlag$data}) {
                 },
               )}
             </tbody>
-            {isEditing ? (
-              <caption>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    form.insertListItem('variations', {
-                      value: defaultValue(flag.type),
-                      description: '',
-                    })
-                  }>
-                  Add variation
-                </Button>
-              </caption>
-            ) : null}
           </Table>
+          {isEditing ? (
+            <Button
+              variant="outline"
+              onClick={() =>
+                form.insertListItem('variations', {
+                  value: defaultValue(flag.type),
+                  description: '',
+                })
+              }>
+              Add variation
+            </Button>
+          ) : null}
         </Box>
         <Group position={isEditing ? 'right' : 'left'}>
           {isEditing ? (
@@ -332,8 +396,9 @@ type FlagForDiffVariation = {
 
 type FlagForDiff = {
   readonly description: string | undefined | null;
-  readonly currentVariation: number;
+  readonly defaultVariation: number;
   readonly variations: readonly FlagForDiffVariation[];
+  readonly environmentVariations: Record<string, number>;
 };
 
 type UpdateType = 'value' | 'variations' | 'description';
@@ -364,16 +429,18 @@ function formatUpdateTypes(updateTypes: Set<UpdateType>) {
   }
 }
 
+//NEXTUP Handle changes in environment values
 function flagDiffs(
   type: FeatureFlagType,
+  environments: readonly {readonly name: string; readonly color: string}[],
   a: FlagForDiff,
   b: FlagForDiff,
 ): {
   updateTypes: Set<UpdateType>;
   diffs: React.ReactElement[];
 } {
-  const aValue = a.variations[a.currentVariation]?.value;
-  const bValue = b.variations[b.currentVariation]?.value;
+  const aValue = a.variations[a.defaultVariation]?.value;
+  const bValue = b.variations[b.defaultVariation]?.value;
 
   const diffs = [];
   const updateTypes = new Set<UpdateType>();
@@ -382,10 +449,32 @@ function flagDiffs(
     updateTypes.add('value');
     diffs.push(
       <Text>
-        Value changed from <Code>{formatValue(type, aValue)}</Code> to{' '}
+        Default value changed from <Code>{formatValue(type, aValue)}</Code> to{' '}
         <Code>{formatValue(type, bValue)}</Code>.
       </Text>,
     );
+  }
+
+  for (const env of environments) {
+    const aVal =
+      a.variations[a.environmentVariations[env.name] ?? a.defaultVariation]
+        ?.value;
+    const bVal =
+      b.variations[b.environmentVariations[env.name] ?? b.defaultVariation]
+        ?.value;
+    if (JSON.stringify(aVal) !== JSON.stringify(bVal)) {
+      updateTypes.add('value');
+      diffs.push(
+        <Group spacing={'0.5em'}>
+          <ColorSwatch color={env.color} size={'0.8em'} />
+          <Text>
+            Value for {env.name} changed from{' '}
+            <Code>{formatValue(type, aVal)}</Code> to{' '}
+            <Code>{formatValue(type, bVal)}</Code>.
+          </Text>
+        </Group>,
+      );
+    }
   }
 
   if (a.description !== b.description) {
@@ -500,7 +589,10 @@ function flagDiffs(
   return {diffs, updateTypes};
 }
 
-function FlagHistory(props: {flag: FlagPageHistory$key}) {
+function FlagHistory(props: {
+  flag: FlagPageHistory$key;
+  viewer: FlagPageEnvironments$data;
+}) {
   const {
     data: flag,
     hasNext,
@@ -524,7 +616,8 @@ function FlagHistory(props: {flag: FlagPageHistory$key}) {
                 value
                 description
               }
-              currentVariation
+              defaultVariation
+              environmentVariations
               timeDeleted
             }
           }
@@ -535,7 +628,8 @@ function FlagHistory(props: {flag: FlagPageHistory$key}) {
           value
           description
         }
-        currentVariation
+        defaultVariation
+        environmentVariations
       }
     `,
     props.flag,
@@ -583,7 +677,12 @@ function FlagHistory(props: {flag: FlagPageHistory$key}) {
           const next =
             idx === 0 ? flag : flag.previousVersions.edges[idx - 1].node;
           const {node, cursor} = edge;
-          const {diffs, updateTypes} = flagDiffs(flag.type, node, next);
+          const {diffs, updateTypes} = flagDiffs(
+            flag.type,
+            props.viewer.environments,
+            node,
+            next,
+          );
           const editedAt = new Date(node.timeDeleted);
           let formattedDate;
           if (isToday(editedAt)) {
@@ -601,7 +700,9 @@ function FlagHistory(props: {flag: FlagPageHistory$key}) {
           return (
             <Timeline.Item key={cursor} title={formatUpdateTypes(updateTypes)}>
               {diffs.length === 0 ? (
-                <Text fs="italic">No changed detected.</Text>
+                <Text color="dimmed" size="sm" key={idx} fs="italic">
+                  No change detected.
+                </Text>
               ) : null}
 
               {diffs.map((d, idx) => (
@@ -626,6 +727,14 @@ function FlagHistory(props: {flag: FlagPageHistory$key}) {
             radius="sm"
             variant="white"
             loading={isLoadingNext}
+            loaderPosition="right"
+            rightIcon={
+              <IconRefresh
+                style={{visibility: 'hidden'}}
+                size="1rem"
+                stroke={2}
+              />
+            }
             onClick={() => loadNext(25)}>
             Load more
           </Button>
@@ -635,7 +744,21 @@ function FlagHistory(props: {flag: FlagPageHistory$key}) {
   );
 }
 
-function Flag(props: {flag: FlagPageFlag$key}) {
+function Flag(props: {
+  flag: FlagPageFlag$key;
+  viewer: FlagPageEnvironments$key;
+}) {
+  const viewer = useFragment(
+    graphql`
+      fragment FlagPageEnvironments on Viewer {
+        environments {
+          name
+          color
+        }
+      }
+    `,
+    props.viewer,
+  );
   const flag = useFragment(
     graphql`
       fragment FlagPageFlag on FeatureFlag {
@@ -647,7 +770,8 @@ function Flag(props: {flag: FlagPageFlag$key}) {
           value
           description
         }
-        currentVariation
+        defaultVariation
+        environmentVariations
         ...FlagPageHistory
       }
     `,
@@ -656,11 +780,11 @@ function Flag(props: {flag: FlagPageFlag$key}) {
 
   return (
     <>
-      <FlagDetail flag={flag} />
+      <FlagDetail flag={flag} viewer={viewer} />
       <Space h="xl" />
       <Title order={4}>History</Title>
       <Space h="md" />
-      <FlagHistory flag={flag} />
+      <FlagHistory flag={flag} viewer={viewer} />
       <Space h="xl" />
     </>
   );
@@ -671,20 +795,23 @@ function FlagContainer() {
   const data = usePreloadedQuery(
     graphql`
       query FlagPageQuery($key: String!) {
-        featureFlag(key: $key) {
-          ...FlagPageFlag
+        viewer {
+          ...FlagPageEnvironments
+          featureFlag(key: $key) {
+            ...FlagPageFlag
+          }
         }
       }
     `,
     rootQuery,
   );
 
-  const flag = data.featureFlag;
+  const flag = data.viewer.featureFlag;
 
   if (!flag) {
     return <Text>Feature flag not found.</Text>;
   }
-  return <Flag flag={flag} />;
+  return <Flag flag={flag} viewer={data.viewer} />;
 }
 
 export function FlagPage() {
@@ -703,9 +830,14 @@ export function FlagPage() {
                   description: '',
                   type: 'BOOL',
                   variations: [{value: '', description: ''}],
-                  currentVariation: 0,
+                  defaultVariation: 0,
+                  environmentVariations: {},
                   ' $fragmentType': 'FlagPageFlag',
                   ' $fragmentSpreads': {FlagPageHistory: true},
+                }}
+                viewer={{
+                  environments: [],
+                  ' $fragmentType': 'FlagPageEnvironments',
                 }}
               />
             </Skeleton>

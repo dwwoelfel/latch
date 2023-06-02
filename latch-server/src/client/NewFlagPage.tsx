@@ -1,6 +1,8 @@
 import {
   ActionIcon,
+  Box,
   Button,
+  ColorSwatch,
   Container,
   Divider,
   Flex,
@@ -15,8 +17,14 @@ import {
 import {useForm} from '@mantine/form';
 import {IconTrash} from '@tabler/icons-react';
 import {useEffect, useState} from 'react';
-import {graphql, useMutation} from 'react-relay';
-import {useNavigate} from 'react-router-dom';
+import {
+  PreloadedQuery,
+  graphql,
+  loadQuery,
+  useMutation,
+  usePreloadedQuery,
+} from 'react-relay';
+import {useLoaderData, useNavigate} from 'react-router-dom';
 import {
   FeatureFlagType,
   NewFlagPageCreateFlagMutation,
@@ -27,8 +35,46 @@ import {
   friendlyType,
   inputForType,
 } from './flagFormUtil';
+import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironment';
+import type {NewFlagPageQuery as NewFlagPageQueryType} from './__generated__/NewFlagPageQuery.graphql';
+import NewFlagPageQuery from './__generated__/NewFlagPageQuery.graphql';
+
+type LoaderData = {
+  rootQuery: PreloadedQuery<NewFlagPageQueryType>;
+};
+
+export const loader = (environment: RelayModernEnvironment): LoaderData => {
+  return {
+    rootQuery: loadQuery(
+      environment,
+      NewFlagPageQuery,
+      {},
+      {
+        fetchPolicy:
+          typeof window !== 'undefined'
+            ? 'store-and-network'
+            : 'store-or-network',
+      },
+    ),
+  };
+};
 
 export function NewFlagPage() {
+  const {rootQuery} = useLoaderData() as LoaderData;
+  const data = usePreloadedQuery(
+    graphql`
+      query NewFlagPageQuery {
+        viewer {
+          environments {
+            name
+            color
+          }
+        }
+      }
+    `,
+    rootQuery,
+  );
+
   const [commit, isInFlight] =
     useMutation<NewFlagPageCreateFlagMutation>(graphql`
       mutation NewFlagPageCreateFlagMutation($input: CreateFeatureFlagInput!) {
@@ -42,6 +88,19 @@ export function NewFlagPage() {
 
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const makeInitialVariations = (type: FeatureFlagType) => {
+    const initialEnvironmentVariations: {[key: string]: number} = {};
+    for (const env of data.viewer.environments) {
+      initialEnvironmentVariations[env.name] = 0;
+    }
+
+    return {
+      defaultVariation: 0,
+      variations: [{value: defaultValue(type), description: ''}],
+      environmentVariations: initialEnvironmentVariations,
+    };
+  };
+
   const form = useForm<{
     key: string;
     type: FeatureFlagType;
@@ -49,7 +108,10 @@ export function NewFlagPage() {
     variationsByType: {
       [key in FeatureFlagType]: {
         variations: {value: any; description: string}[];
-        currentVariation: number;
+        defaultVariation: number;
+        environmentVariations: {
+          [key: string]: number;
+        };
       };
     };
   }>({
@@ -58,34 +120,17 @@ export function NewFlagPage() {
       type: 'BOOL',
       description: '',
       variationsByType: {
-        BOOL: {
-          currentVariation: 0,
-          variations: [
-            {value: true, description: ''},
-            {value: false, description: ''},
-          ],
-        },
-        INT: {
-          currentVariation: 0,
-          variations: [{value: defaultValue('INT'), description: ''}],
-        },
-        FLOAT: {
-          currentVariation: 0,
-          variations: [{value: defaultValue('FLOAT'), description: ''}],
-        },
-        STRING: {
-          currentVariation: 0,
-          variations: [{value: defaultValue('STRING'), description: ''}],
-        },
-        JSON: {
-          currentVariation: 0,
-          variations: [{value: defaultValue('JSON'), description: ''}],
-        },
+        BOOL: makeInitialVariations('BOOL'),
+        INT: makeInitialVariations('INT'),
+        FLOAT: makeInitialVariations('FLOAT'),
+        STRING: makeInitialVariations('STRING'),
+        JSON: makeInitialVariations('JSON'),
         // Make the type-checker happy. Won't see this in practice because
         // we control the select options
         '%future added value': {
-          currentVariation: 0,
+          defaultVariation: 0,
           variations: [],
+          environmentVariations: {},
         },
       },
     },
@@ -106,14 +151,23 @@ export function NewFlagPage() {
   }, [form.values]);
 
   useEffect(() => {
-    const {variations, currentVariation} =
+    const {variations, defaultVariation, environmentVariations} =
       form.values.variationsByType[form.values.type];
 
-    if (currentVariation !== 0 && variations.length < currentVariation) {
+    if (defaultVariation !== 0 && variations.length < defaultVariation) {
       form.setFieldValue(
-        `variationsByType.${form.values.type}.currentVariation`,
+        `variationsByType.${form.values.type}.defaultVariation`,
         0,
       );
+    }
+
+    for (const [key, value] of Object.entries(environmentVariations)) {
+      if (value !== 0 && variations.length < value) {
+        form.setFieldValue(
+          `variationsByType.${form.values.type}.environmentVariations.${key}`,
+          0,
+        );
+      }
     }
   }, [form]);
 
@@ -143,8 +197,10 @@ export function NewFlagPage() {
                 values.description === '' ? null : values.description,
               variations: values.variationsByType[values.type].variations,
               type: values.type,
-              currentVariation:
-                values.variationsByType[values.type].currentVariation,
+              defaultVariation:
+                values.variationsByType[values.type].defaultVariation,
+              environmentVariations:
+                values.variationsByType[values.type].environmentVariations,
             };
             commit({
               variables: {input},
@@ -165,12 +221,14 @@ export function NewFlagPage() {
           <TextInput
             label="Key"
             placeholder="my_flag"
+            description="The unique key used to look up the feature flag. Letters, numbers, hyphens, and underscores are allowed."
             required
             {...form.getInputProps('key')}
           />
           <Space h="sm" />
           <Select
             label="Type"
+            description="The type of the feature flag value. It can't be changed after it's created."
             required
             data={availableTypes.map((value: FeatureFlagType) => {
               return {
@@ -218,7 +276,7 @@ export function NewFlagPage() {
               form.insertListItem(
                 `variationsByType.${form.values.type}.variations`,
                 {
-                  value: defaultValue(form.values.type),
+                  value: defaultValue(form.values.type, true),
                   description: '',
                 },
               )
@@ -227,16 +285,43 @@ export function NewFlagPage() {
           </Button>
           <Space h="md" />
           <Select
-            label="Current variation"
+            label="Default variation"
+            description="The variation that will be used if a new environment is created in the future."
             // @ts-expect-error: it doesn't like that I use a number for value, but it seems to work
             data={variations.map((v, idx) => ({
               value: idx,
               label: formatValue(form.values.type, v.value),
             }))}
             {...form.getInputProps(
-              `variationsByType.${form.values.type}.currentVariation`,
+              `variationsByType.${form.values.type}.defaultVariation`,
             )}
           />
+
+          {data.viewer.environments.map((env) => {
+            return (
+              <Box key={env.name}>
+                <Space h="md" />
+                <Select
+                  description={`The variation that will be used in the ${env.name} environment.`}
+                  label={
+                    <Group spacing="0.5rem" align="center">
+                      <ColorSwatch size="1rem" color={env.color} />
+                      <Text>{env.name} variation</Text>
+                    </Group>
+                  }
+                  // @ts-expect-error: it doesn't like that I use a number for value, but it seems to work
+                  data={variations.map((v, idx) => ({
+                    value: idx,
+                    label: formatValue(form.values.type, v.value),
+                  }))}
+                  {...form.getInputProps(
+                    `variationsByType.${form.values.type}.environmentVariations.${env.name}`,
+                  )}
+                />
+              </Box>
+            );
+          })}
+
           {saveError ? (
             <Text mt={'md'} color="red" size={'sm'}>
               Could not save flag. {saveError}
