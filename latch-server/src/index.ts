@@ -59,7 +59,10 @@ async function start() {
   await latchClient.init();
   console.timeEnd('latchClient.init');
 
-  await server.listen({port});
+  await server.listen({
+    port,
+    host: env === 'development' ? 'localhost' : '0.0.0.0',
+  });
 
   let shutdownPromise: Promise<any> | null;
 
