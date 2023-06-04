@@ -15,7 +15,6 @@ import {
   RequestParameters,
   Variables,
 } from 'relay-runtime';
-import {createServer as createViteServer} from 'vite';
 import {createContext, schema} from '../schema.js';
 import {graphiqlStandalone} from './template.js';
 // @ts-expect-error: uses esbuild binary loader
@@ -51,6 +50,7 @@ async function makeCatchAllDev({
   network: NetworkType;
   stylesServer: EmotionServer;
 }) {
+  const {createServer: createViteServer} = await import('vite');
   const vite = await createViteServer({
     server: {middlewareMode: true},
     ssr: {
