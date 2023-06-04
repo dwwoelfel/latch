@@ -1,15 +1,21 @@
 {
   "name": "latch-server",
   "packageManager": "yarn@3.5.0",
+  "type": "module",
   "scripts": {
     "dev": "nodemon",
     "codegen": "graphql-codegen",
-    "relay": "yarn relay-compiler"
+    "relay": "yarn relay-compiler",
+    "build:client": "NODE_ENV=production vite build --outDir build/client",
+    "build:ssr-server": "NODE_ENV=production vite build --outDir build --ssr src/entry-server.tsx",
+    "build:server": "NODE_ENV=production esbuild $(find src -name '*.ts' -o -name '*.ico' -o -name '*.svg' -not -path './client/*' | grep -v '^src/client') --platform=node --outdir=build --format=esm --loader:.ico=binary --loader:.svg=binary",
+    "build": "yarn build:ssr-server && yarn build:server && yarn build:client"
   },
   "dependencies": {
     "@emotion/react": "^11.11.0",
     "@emotion/server": "^11.11.0",
     "@fastify/middie": "^8.3.0",
+    "@fastify/static": "^6.10.2",
     "@google-cloud/pubsub": "^3.7.0",
     "@google-cloud/storage": "^6.10.1",
     "@graphql-tools/schema": "^10.0.0",
@@ -25,6 +31,7 @@
     "date-fns": "^2.30.0",
     "fastify": "^4.17.0",
     "graphql": "^17.0.0-alpha.2",
+    "latch-node-sdk": "^1.0.0-alpha.5",
     "protobufjs": "^7.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -47,6 +54,7 @@
     "@types/relay-runtime": "^14.1.10",
     "babel-plugin-macros": "^3.1.0",
     "babel-plugin-relay": "^15.0.0",
+    "esbuild": "^0.17.19",
     "nodemon": "^2.0.22",
     "prettier": "^2.8.8",
     "typescript": "^5.0.4",

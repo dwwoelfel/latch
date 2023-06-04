@@ -2,34 +2,6 @@
 const html = (strings: TemplateStringsArray, ...values: any[]) =>
   String.raw({raw: strings}, ...values);
 
-export const template = html`
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="initial-scale=1, width=device-width" />
-      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-      <style>
-        code,
-        pre {
-          font-family: 'Fira Code', monospace;
-          font-size: 0.8em;
-        }
-      </style>
-      <!--ssr-style-->
-
-      <title>Latch Feature Flags</title>
-    </head>
-    <body>
-      <div id="app"><!--ssr-outlet--></div>
-      <script type="module" src="/src/entry-client"></script>
-      <script id="__relay-records__" type="application/json">
-        <!--relay-records-->
-      </script>
-    </body>
-  </html>
-`;
-
 export const graphiqlStandalone = html`<!--
 *  Copyright (c) 2021 GraphQL Contributors
 *  All rights reserved.

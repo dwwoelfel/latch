@@ -11,15 +11,15 @@ import {
   Title,
 } from '@mantine/core';
 import {IconRefresh, IconSelector} from '@tabler/icons-react';
+import type {PreloadedQuery} from 'react-relay';
+import {graphql} from 'react-relay';
 import {
-  PreloadedQuery,
-  graphql,
   loadQuery,
   useFragment,
   useMutation,
   usePaginationFragment,
   usePreloadedQuery,
-} from 'react-relay';
+} from './react-relay';
 import {useLoaderData, useOutletContext} from 'react-router-dom';
 import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironment.js';
 import {PreloadLink} from './PreloadLink.js';

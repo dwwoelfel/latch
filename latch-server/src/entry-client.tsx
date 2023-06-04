@@ -41,29 +41,33 @@ const lazyMatches = matchRoutes(routes, window.location)?.filter(
   (m) => m.route.lazy,
 );
 
-// Load the lazy matches and update the routes before creating your router
-// so we can hydrate the SSR-rendered content synchronously
-if (lazyMatches && lazyMatches?.length > 0) {
-  await Promise.all(
-    lazyMatches.map(async (m) => {
-      // @ts-expect-error: seems to work
-      const routeModule = await m.route.lazy();
-      Object.assign(m.route, {
-        ...routeModule,
-        lazy: undefined,
-      });
-    }),
+async function main() {
+  // Load the lazy matches and update the routes before creating your router
+  // so we can hydrate the SSR-rendered content synchronously
+  if (lazyMatches && lazyMatches?.length > 0) {
+    await Promise.all(
+      lazyMatches.map(async (m) => {
+        // @ts-expect-error: seems to work
+        const routeModule = await m.route.lazy();
+        Object.assign(m.route, {
+          ...routeModule,
+          lazy: undefined,
+        });
+      }),
+    );
+  }
+
+  ReactDOM.hydrateRoot(
+    // @ts-expect-error: Not sure catching the error would help here
+    document.getElementById('app'),
+    <StrictMode>
+      <RoutesContext.Provider value={routes}>
+        <RelayEnvironmentProvider environment={environment}>
+          <RouterProvider router={router} />
+        </RelayEnvironmentProvider>
+      </RoutesContext.Provider>
+    </StrictMode>,
   );
 }
 
-ReactDOM.hydrateRoot(
-  // @ts-expect-error: Not sure catching the error would help here
-  document.getElementById('app'),
-  <StrictMode>
-    <RoutesContext.Provider value={routes}>
-      <RelayEnvironmentProvider environment={environment}>
-        <RouterProvider router={router} />
-      </RelayEnvironmentProvider>
-    </RoutesContext.Provider>
-  </StrictMode>,
-);
+main();

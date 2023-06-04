@@ -18,18 +18,18 @@ import {
   Popover,
   Text,
   Title,
-  useMantineTheme
+  useMantineTheme,
 } from '@mantine/core';
-import { IconPlus, IconSelector } from '@tabler/icons-react';
-import { Suspense, useEffect, useRef } from 'react';
+import {IconPlus, IconSelector} from '@tabler/icons-react';
+import {Suspense, useEffect, useRef} from 'react';
+import type {PreloadedQuery} from 'react-relay';
+import {graphql} from 'react-relay';
 import {
-  PreloadedQuery,
-  graphql,
   loadQuery,
   useFragment,
   useMutation,
   usePreloadedQuery,
-} from 'react-relay';
+} from './react-relay';
 import {
   Link,
   Outlet,
@@ -38,13 +38,13 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironment';
-import { CreateEnvironmentForm } from './CreateEnvironmentForm';
-import { PreloadLink } from './PreloadLink';
-import { AppEnvironmentSelector$key } from './__generated__/AppEnvironmentSelector.graphql';
-import type { AppQuery as AppQueryType } from './__generated__/AppQuery.graphql';
+import {CreateEnvironmentForm} from './CreateEnvironmentForm';
+import {PreloadLink} from './PreloadLink';
+import {AppEnvironmentSelector$key} from './__generated__/AppEnvironmentSelector.graphql';
+import type {AppQuery as AppQueryType} from './__generated__/AppQuery.graphql';
 import AppQuery from './__generated__/AppQuery.graphql';
-import { AppUpdateEnvironmentMutation } from './__generated__/AppUpdateEnvironmentMutation.graphql';
-import { getTextColor, shades } from './util';
+import {AppUpdateEnvironmentMutation} from './__generated__/AppUpdateEnvironmentMutation.graphql';
+import {getTextColor, shades} from './util';
 
 type LoaderData = {
   rootQuery: PreloadedQuery<AppQueryType>;

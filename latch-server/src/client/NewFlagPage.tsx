@@ -17,13 +17,9 @@ import {
 import {useForm} from '@mantine/form';
 import {IconTrash} from '@tabler/icons-react';
 import {useEffect, useState} from 'react';
-import {
-  PreloadedQuery,
-  graphql,
-  loadQuery,
-  useMutation,
-  usePreloadedQuery,
-} from 'react-relay';
+import type {PreloadedQuery} from 'react-relay';
+import {graphql} from 'react-relay';
+import {loadQuery, useMutation, usePreloadedQuery} from './react-relay';
 import {useLoaderData, useNavigate} from 'react-router-dom';
 import {
   FeatureFlagType,

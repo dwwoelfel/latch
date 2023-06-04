@@ -1112,7 +1112,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/static@npm:^6.9.0":
+"@fastify/static@npm:^6.10.2, @fastify/static@npm:^6.9.0":
   version: 6.10.2
   resolution: "@fastify/static@npm:6.10.2"
   dependencies:
@@ -3837,7 +3837,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild@npm:^0.17.5":
+"esbuild@npm:^0.17.19, esbuild@npm:^0.17.5":
   version: 0.17.19
   resolution: "esbuild@npm:0.17.19"
   dependencies:
@@ -5318,6 +5318,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"latch-node-sdk@npm:^1.0.0-alpha.5":
+  version: 1.0.0-alpha.5
+  resolution: "latch-node-sdk@npm:1.0.0-alpha.5"
+  dependencies:
+    "@google-cloud/pubsub": ^3.7.0
+    "@google-cloud/storage": ^6.10.1
+  checksum: d0f318d1388d5ed4756d125d483a0847804135cddce7c131f3d2d326fb8cf1c82ad6f4d5ffbbdafc5767a7be7feb7d09eaf94a883ef20c298ca28a18a10b7588
+  languageName: node
+  linkType: hard
+
 "latch-server@workspace:.":
   version: 0.0.0-use.local
   resolution: "latch-server@workspace:."
@@ -5326,6 +5336,7 @@ __metadata:
     "@emotion/react": ^11.11.0
     "@emotion/server": ^11.11.0
     "@fastify/middie": ^8.3.0
+    "@fastify/static": ^6.10.2
     "@fastify/vite": ^4.0.0
     "@google-cloud/pubsub": ^3.7.0
     "@google-cloud/storage": ^6.10.1
@@ -5351,8 +5362,10 @@ __metadata:
     babel-plugin-relay: ^15.0.0
     dataloader: ^2.2.2
     date-fns: ^2.30.0
+    esbuild: ^0.17.19
     fastify: ^4.17.0
     graphql: ^17.0.0-alpha.2
+    latch-node-sdk: ^1.0.0-alpha.5
     nodemon: ^2.0.22
     prettier: ^2.8.8
     protobufjs: ^7.2.3

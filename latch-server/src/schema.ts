@@ -11,7 +11,7 @@ import {
   ValueNode,
 } from 'graphql';
 import proto from 'protobufjs';
-import {FeatureFlagType, Resolvers} from './resolvers-types';
+import {FeatureFlagType, Resolvers} from './resolvers-types.js';
 
 const sdl = fs.readFileSync('schema.graphql', 'utf-8');
 

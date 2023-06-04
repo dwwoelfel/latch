@@ -1,6 +1,6 @@
 {
-  "watch": ["src"],
+  "watch": ["src", "test"],
   "ignore": ["src/**/*.test.ts", "src/client/**/*"],
   "ext": "ts,mjs,js,json,graphql",
-  "exec": "esbuild `find src -name '*.ts' -o -name '*.ico' -o -name '*.svg'` --platform=node --outdir=dist --format=cjs --loader:.ico=binary --loader:.svg=binary && NODE_ENV=development node dist"
+  "exec": "esbuild `find src -name '*.ts' -o -name '*.ico' -o -name '*.svg'` --platform=node --outdir=dist --format=esm --loader:.ico=binary --loader:.svg=binary && NODE_ENV=development node dist"
 }

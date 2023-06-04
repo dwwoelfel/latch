@@ -1,16 +1,13 @@
 import middie from '@fastify/middie';
 import {Bucket} from '@google-cloud/storage';
 import {createStylesServer, getSSRStyles} from '@mantine/ssr';
-import vitePluginReact from '@vitejs/plugin-react';
 import fastify, {
+  FastifyInstance,
   FastifyReply,
   FastifyRequest,
   RouteGenericInterface,
 } from 'fastify';
 import {DocumentNode, GraphQLError, execute, parse, validate} from 'graphql';
-import {createServer as createViteServer} from 'vite';
-import {createContext, schema} from '../schema.js';
-import {graphiqlStandalone, template} from './template.js';
 import {
   FetchFunction,
   GraphQLResponse,
@@ -18,11 +15,25 @@ import {
   RequestParameters,
   Variables,
 } from 'relay-runtime';
+import {createServer as createViteServer} from 'vite';
+import {createContext, schema} from '../schema.js';
+import {graphiqlStandalone} from './template.js';
 // @ts-expect-error: uses esbuild binary loader
 import favicon from './favicon.js';
+
+import {EmotionServer} from '@emotion/server/create-instance';
+import {Topic} from '@google-cloud/pubsub';
+import fs from 'fs';
+import type {Network as NetworkType} from 'relay-runtime/lib/network/RelayNetworkTypes.js';
+import {Env} from '../index.js';
+
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import {fileURLToPath} from 'url';
 // @ts-expect-error: uses esbuild binary loader
 import logo from './logo.js';
-import {Topic} from '@google-cloud/pubsub';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -31,16 +42,17 @@ declare module 'fastify' {
   }
 }
 
-async function setupVite({bucket, topic}: {bucket: Bucket; topic: Topic}) {
+async function makeCatchAllDev({
+  server,
+  network,
+  stylesServer,
+}: {
+  server: FastifyInstance;
+  network: NetworkType;
+  stylesServer: EmotionServer;
+}) {
   const vite = await createViteServer({
     server: {middlewareMode: true},
-    plugins: [
-      vitePluginReact({
-        babel: {
-          plugins: ['relay'],
-        },
-      }),
-    ],
     ssr: {
       noExternal: ['fsevents'],
     },
@@ -50,30 +62,7 @@ async function setupVite({bucket, topic}: {bucket: Bucket; topic: Topic}) {
     appType: 'custom',
   });
 
-  const stylesServer = createStylesServer();
-
-  const fetchQuery: FetchFunction = async (
-    request: RequestParameters,
-    variables: Variables,
-  ) => {
-    if (!request.text) {
-      throw new Error('Invalid query.');
-    }
-    const res = await execute({
-      schema,
-      document: parse(request.text),
-      contextValue: createContext({bucket, topic}),
-      variableValues: variables,
-    });
-
-    if (res.errors?.length) {
-      console.log('Errors', JSON.stringify(res.errors));
-    }
-
-    return res as GraphQLResponse;
-  };
-
-  const network = Network.create(fetchQuery);
+  const template = fs.readFileSync(`${__dirname}../../index.html`, 'utf-8');
 
   const catchallHandler = async (
     request: FastifyRequest,
@@ -111,7 +100,111 @@ async function setupVite({bucket, topic}: {bucket: Bucket; topic: Topic}) {
     }
   };
 
-  return {vite, catchallHandler};
+  server.use(vite.middlewares);
+  return catchallHandler;
+}
+
+async function makeCatchAllProd({
+  server,
+  network,
+  stylesServer,
+}: {
+  server: FastifyInstance;
+  network: NetworkType;
+  stylesServer: EmotionServer;
+}) {
+  const vitedTemplate = fs.readFileSync(
+    `${__dirname}../client/index.html`,
+    'utf-8',
+  );
+  const catchallHandler = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const {render} = await import('../entry-server.js');
+
+      const {html: appHtml, records} = await render(network, request);
+
+      const styles = getSSRStyles(appHtml, stylesServer);
+
+      const html = vitedTemplate
+        .replace('<!--ssr-outlet-->', appHtml)
+        .replace('<!--ssr-style-->', styles)
+        .replace('<!--relay-records-->', JSON.stringify(records));
+
+      reply.code(200).header('content-type', 'text/html').send(html);
+    } catch (e) {
+      if (e instanceof Response) {
+        const body = await e.text();
+        const headers: {[key: string]: string} = {};
+        for (const [k, v] of e.headers) {
+          headers[k] = v;
+        }
+        reply.code(e.status).headers(headers).send(body);
+        return;
+      }
+      throw e;
+    }
+  };
+
+  server.register(fastifyStatic, {
+    root: path.join(__dirname, '../client/assets'),
+    prefix: '/assets',
+  });
+
+  return catchallHandler;
+}
+
+async function setupVite({
+  server,
+  bucket,
+  topic,
+  isDev,
+}: {
+  server: FastifyInstance;
+  bucket: Bucket;
+  topic: Topic;
+  isDev: boolean;
+}) {
+  const stylesServer = createStylesServer();
+
+  const fetchQuery: FetchFunction = async (
+    request: RequestParameters,
+    variables: Variables,
+  ) => {
+    if (!request.text) {
+      throw new Error('Invalid query.');
+    }
+    const res = await execute({
+      schema,
+      document: parse(request.text),
+      contextValue: createContext({bucket, topic}),
+      variableValues: variables,
+    });
+
+    if (res.errors?.length) {
+      console.log('Errors', JSON.stringify(res.errors));
+    }
+
+    return res as GraphQLResponse;
+  };
+
+  const network = Network.create(fetchQuery);
+
+  const catchallHandler = await (isDev
+    ? makeCatchAllDev({
+        server,
+        network,
+        stylesServer,
+      })
+    : makeCatchAllProd({
+        server,
+        network,
+        stylesServer,
+      }));
+
+  server.get('*', catchallHandler);
 }
 
 function safeParse(
@@ -181,12 +274,20 @@ const graphqlHandler: Handler<GraphQLHandlerProps> = async (request) => {
 export async function createServer({
   bucket,
   topic,
+  isDev,
 }: {
   bucket: Bucket;
   topic: Topic;
+  env: Env;
+  isDev: boolean;
 }) {
   const server = fastify({
     logger: true,
+  });
+
+  server.setErrorHandler(function (error, _request, reply) {
+    console.error(error);
+    reply.status(500).send('Internal error');
   });
 
   await server.register(middie);
@@ -217,9 +318,12 @@ export async function createServer({
       .send(Buffer.from(favicon)),
   );
 
-  const {vite, catchallHandler} = await setupVite({bucket, topic});
-  server.use(vite.middlewares);
-  server.get('*', catchallHandler);
+  await setupVite({
+    server,
+    bucket,
+    topic,
+    isDev,
+  });
 
   return server;
 }

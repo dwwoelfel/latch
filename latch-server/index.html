@@ -3,18 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="initial-scale=1, width=device-width" />
-    <style>
-      code,
-      pre {
-        font-family: 'Fira Code', monospace;
-        font-size: 0.8em;
-      }
-    </style>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--ssr-style-->
 
     <title>Latch Feature Flags</title>
   </head>
   <body>
     <div id="app"><!--ssr-outlet--></div>
-    <script type="module" src="/src/entry-client.ts"></script>
+    <script type="module" src="/src/entry-client"></script>
+    <script id="__relay-records__" type="application/json">
+      <!--relay-records-->
+    </script>
   </body>
 </html>

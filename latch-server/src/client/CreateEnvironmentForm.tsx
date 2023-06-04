@@ -1,7 +1,8 @@
 import {Button, ColorInput, Space, TextInput, Text} from '@mantine/core';
 import {useForm} from '@mantine/form';
 import {useEffect, useState} from 'react';
-import {graphql, useMutation} from 'react-relay';
+import {graphql} from 'react-relay';
+import {useMutation} from './react-relay';
 import {CreateEnvironmentFormMutation} from './__generated__/CreateEnvironmentFormMutation.graphql';
 import {useNavigate} from 'react-router-dom';
 

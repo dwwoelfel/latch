@@ -6,10 +6,11 @@ import {
 } from 'react-router-dom/server';
 
 import {FastifyRequest} from 'fastify';
-import {RelayEnvironmentProvider} from 'react-relay';
+// @ts-expect-error: trying to work around esm/cjs errors 
+import RelayEnvironmentProvider from 'react-relay/lib/relay-hooks/RelayEnvironmentProvider.js';
+import {Network} from 'relay-runtime/lib/network/RelayNetworkTypes';
 import {createEnvironment} from './client/Environment';
 import {RoutesContext, createRoutes, preloadRoute} from './client/routes';
-import {Network} from 'relay-runtime/lib/network/RelayNetworkTypes';
 
 function makeRequest(req: FastifyRequest) {
   const origin = `${req.protocol}://${req.headers.host}`;

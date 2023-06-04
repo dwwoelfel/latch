@@ -36,3 +36,4 @@ dist-ssr
 *.sln
 *.sw?
 
+latch-server/build

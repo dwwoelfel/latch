@@ -30,17 +30,17 @@ import {
   isYesterday,
 } from 'date-fns';
 import {Suspense, useEffect, useState} from 'react';
+import type {PreloadedQuery} from 'react-relay';
+import {graphql} from 'react-relay';
 import {
-  PreloadedQuery,
-  graphql,
   loadQuery,
   useFragment,
   useMutation,
   usePaginationFragment,
   usePreloadedQuery,
-} from 'react-relay';
+} from './react-relay';
 import {LoaderFunctionArgs, useLoaderData} from 'react-router-dom';
-import {stableCopy} from 'relay-runtime';
+import {stableCopy} from './relay-runtime';
 import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironment.js';
 import {
   FeatureFlagType,
@@ -125,6 +125,7 @@ function FlagDetail({
 
   useEffect(() => {
     form.setValues(initialValues);
+    form.resetDirty();
     // TODO: Hook should complain about this
   }, [resetSignal]);
 
