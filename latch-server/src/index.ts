@@ -37,7 +37,7 @@ async function start() {
     env: envTyped,
     isDev: env === 'development',
   });
-  await server.listen({port});
+
   const latchClient = new LatchClient<{
     caitlin_mood: LatchFlagConfig<'string'>;
   }>({
@@ -58,6 +58,8 @@ async function start() {
   console.time('latchClient.init');
   await latchClient.init();
   console.timeEnd('latchClient.init');
+
+  await server.listen({port});
 
   let shutdownPromise: Promise<any> | null;
 
