@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Anchor,
   AppShell,
+  Avatar,
   Box,
   Button,
   ColorPicker,
@@ -15,26 +16,23 @@ import {
   MantineProvider,
   MantineThemeOverride,
   Menu,
+  Paper,
   Popover,
   Text,
   Title,
   useMantineTheme,
 } from '@mantine/core';
-import {IconPlus, IconSelector} from '@tabler/icons-react';
-import {Suspense, useEffect, useRef} from 'react';
+import {IconBrandGoogle, IconPlus, IconSelector} from '@tabler/icons-react';
+import {Suspense, useEffect, useRef, useState} from 'react';
+import {ErrorBoundary} from 'react-error-boundary';
 import type {PreloadedQuery} from 'react-relay';
 import {graphql} from 'react-relay';
-import {
-  loadQuery,
-  useFragment,
-  useMutation,
-  usePreloadedQuery,
-} from './react-relay';
 import {
   Link,
   Outlet,
   useLoaderData,
   useLocation,
+  useNavigate,
   useSearchParams,
 } from 'react-router-dom';
 import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironment';
@@ -44,6 +42,13 @@ import {AppEnvironmentSelector$key} from './__generated__/AppEnvironmentSelector
 import type {AppQuery as AppQueryType} from './__generated__/AppQuery.graphql';
 import AppQuery from './__generated__/AppQuery.graphql';
 import {AppUpdateEnvironmentMutation} from './__generated__/AppUpdateEnvironmentMutation.graphql';
+import {authNotify, login} from './authPopup';
+import {
+  loadQuery,
+  useFragment,
+  useMutation,
+  usePreloadedQuery,
+} from './react-relay';
 import {getTextColor, shades} from './util';
 
 type LoaderData = {
@@ -219,7 +224,47 @@ function EnvironmentSelector(props: {
   );
 }
 
-export function App() {
+function ErrorFallback({
+  error,
+  resetErrorBoundary,
+}: {
+  error: Error;
+  resetErrorBoundary: () => void;
+}) {
+  console.log('error', error);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const handleLogin = async () => {
+    try {
+      const loginErr = await login();
+      if (loginErr) {
+        setLoginError(loginErr.message);
+      } else {
+        navigate(location, {
+          replace: true,
+        });
+        resetErrorBoundary();
+      }
+    } catch (e) {
+      setLoginError((e as Error).message);
+    }
+  };
+  return (
+    <Container size="sm">
+      <Flex m="1em" justify="center" align="center">
+        {loginError ? <Text>{loginError}</Text> : null}
+        <Button
+          leftIcon={<IconBrandGoogle size="1rem" />}
+          onClick={handleLogin}>
+          Login
+        </Button>
+      </Flex>
+    </Container>
+  );
+}
+
+function AppImpl() {
   const loc = useLocation();
   const {rootQuery} = useLoaderData() as LoaderData;
   const data = usePreloadedQuery(
@@ -236,8 +281,6 @@ export function App() {
     `,
     rootQuery,
   );
-
-  // XXX: Validate color (do that on the server)
 
   const colors: MantineThemeOverride['colors'] = {};
   for (const env of data.viewer.environments) {
@@ -285,16 +328,48 @@ export function App() {
     }
   }, [isEnvironmentAgnostic, params]);
 
+  const [showLoginHeader, setShowLoginHeader] = useState(false);
+
+  useEffect(() => {
+    const logoutCallback = () => {
+      setShowLoginHeader(true);
+    };
+    const loginCallback = () => {
+      setShowLoginHeader(false);
+    };
+    authNotify.addEventListener('logout', logoutCallback);
+    authNotify.addEventListener('login', loginCallback);
+    () => {
+      authNotify.removeEventListener('logout', logoutCallback);
+      authNotify.removeEventListener('login', loginCallback);
+    };
+  });
+
   return (
     <MantineProvider withGlobalStyles withNormalizeCSS theme={{colors}}>
       <AppShell
         padding="md"
         header={
-          <Header height={60} p="sm">
+          <Header height={showLoginHeader ? 120 : 60} p={0}>
+            {showLoginHeader ? (
+              <Paper h="50%" shadow="sm">
+                <Flex align="center" justify={'center'} p="sm">
+                  <Text pr="xs">You've been logged out.</Text>
+                  <Button
+                    leftIcon={<IconBrandGoogle size="1rem" />}
+                    color="cyan"
+                    onClick={() => login()}>
+                    Login
+                  </Button>
+                </Flex>
+              </Paper>
+            ) : null}
             <Flex
-              style={{height: '100%'}}
+              opacity={showLoginHeader ? 0.5 : undefined}
+              style={{height: showLoginHeader ? '50%' : '100%'}}
               align={'center'}
-              justify={'space-between'}>
+              justify={'space-between'}
+              p="sm">
               <Group>
                 {loc.pathname === '/' || !data.viewer.environments.length ? (
                   <Text>Latch</Text>
@@ -305,26 +380,71 @@ export function App() {
                   <EnvironmentSelector data={data.viewer} env={env} />
                 ) : null}
               </Group>
-              {loc.pathname.endsWith('create') ||
-              !data.viewer.environments.length ? null : (
-                <Anchor to="/flags/create" component={Link}>
-                  Create flag
-                </Anchor>
-              )}
+              <Group>
+                {loc.pathname.endsWith('create') ||
+                !data.viewer.environments.length ? null : (
+                  <Anchor to="/flags/create" component={Link}>
+                    Create flag
+                  </Anchor>
+                )}
+                <Menu>
+                  <Menu.Target>
+                    <ActionIcon>
+                      <Avatar></Avatar>
+                    </ActionIcon>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Item
+                      onClick={async () => {
+                        await fetch('/logout', {
+                          method: 'POST',
+                          headers: {
+                            'content-type': 'application/json',
+                          },
+                          body: JSON.stringify({token: `${Math.random()}`}),
+                        });
+                        window.location.href = window.location.href;
+                      }}>
+                      Logout
+                    </Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
             </Flex>
           </Header>
         }>
-        <Suspense
-          fallback={
-            <Container>
-              <Flex align={'center'} justify={'center'}>
-                <Loader />
-              </Flex>
-            </Container>
-          }>
-          <EnvironmentsGuard env={env} />
-        </Suspense>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense
+            fallback={
+              <Container>
+                <Flex align={'center'} justify={'center'}>
+                  <Loader />
+                </Flex>
+              </Container>
+            }>
+            <Box opacity={showLoginHeader ? 0.5 : undefined}>
+              <EnvironmentsGuard env={env} />
+            </Box>
+          </Suspense>
+        </ErrorBoundary>
       </AppShell>
     </MantineProvider>
+  );
+}
+
+export function App() {
+  return (
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <Suspense
+        fallback={
+          <Container>
+            <Flex align={'center'} justify={'center'}>
+              <Loader />
+            </Flex>
+          </Container>
+        }>
+        <AppImpl />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

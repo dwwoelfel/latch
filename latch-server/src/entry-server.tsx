@@ -6,7 +6,7 @@ import {
 } from 'react-router-dom/server';
 
 import {FastifyRequest} from 'fastify';
-// @ts-expect-error: trying to work around esm/cjs errors 
+// @ts-expect-error: trying to work around esm/cjs errors
 import RelayEnvironmentProvider from 'react-relay/lib/relay-hooks/RelayEnvironmentProvider.js';
 import {Network} from 'relay-runtime/lib/network/RelayNetworkTypes';
 import {createEnvironment} from './client/Environment';
@@ -63,8 +63,12 @@ export async function render(network: Network, request: FastifyRequest) {
   for (const preload of preloads) {
     // @ts-expect-error: works in practive
     if (preload?.rootQuery?.kind === 'PreloadedQuery') {
-      // @ts-expect-error: works in practive
-      await preload.rootQuery.source.toPromise();
+      try {
+        // @ts-expect-error: works in practive
+        await preload.rootQuery.source.toPromise();
+      } catch (e) {
+        console.log('error in preloading');
+      }
     }
   }
 

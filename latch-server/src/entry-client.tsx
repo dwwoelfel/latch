@@ -1,14 +1,20 @@
 import {StrictMode} from 'react';
 import ReactDOM from 'react-dom/client';
+import {RelayEnvironmentProvider} from 'react-relay';
 import {
   RouterProvider,
   createBrowserRouter,
   matchRoutes,
 } from 'react-router-dom';
+import {
+  GraphQLSingularResponse,
+  Network,
+  RequestParameters,
+  Variables,
+} from 'relay-runtime';
 import {createEnvironment} from './client/Environment';
 import {RoutesContext, createRoutes} from './client/routes';
-import {RelayEnvironmentProvider} from 'react-relay';
-import {Network, RequestParameters, Variables} from 'relay-runtime';
+import {authNotify} from './client/authPopup';
 
 async function fetchQuery(request: RequestParameters, variables: Variables) {
   const response = await fetch('/graphql', {
@@ -21,17 +27,36 @@ async function fetchQuery(request: RequestParameters, variables: Variables) {
       variables,
     }),
   });
-  return response.json();
+  const json: GraphQLSingularResponse = await response.json();
+
+  if ('errors' in json && json.errors?.length) {
+    if (
+      json.errors?.find((e) => {
+        // @ts-expect-error: valid key for error, but missing in relay
+        const type = e.extensions?.type;
+        if (type === 'auth/missing') {
+          return true;
+        }
+      })
+    ) {
+      authNotify.notifyLoggedOut();
+    }
+  }
+  return json;
 }
 
 const network = Network.create(fetchQuery);
 
-const records = document.getElementById('__relay-records__')?.innerText;
+let records = undefined;
 
-const environment = createEnvironment(
-  network,
-  records ? JSON.parse(records) : undefined,
-);
+try {
+  const recordsJson = document.getElementById('__relay-records__')?.innerText;
+  if (recordsJson) {
+    records = JSON.parse(recordsJson);
+  }
+} catch (e) {}
+
+const environment = createEnvironment(network, records);
 
 const routes = createRoutes(environment);
 
