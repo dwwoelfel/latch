@@ -16,6 +16,7 @@ COPY vite.config.js .
 COPY tsconfig.json .
 COPY src src
 COPY index.html .
+COPY relay.config.json .
 
 RUN yarn build
 
