@@ -1,27 +1,24 @@
 import {
   Box,
   Button,
+  Code,
   Container,
   Flex,
   Group,
   Menu,
+  Modal,
   Space,
   Table,
   Text,
   Title,
 } from '@mantine/core';
 import {IconRefresh, IconSelector} from '@tabler/icons-react';
+import React, {useState} from 'react';
 import type {PreloadedQuery} from 'react-relay';
 import {graphql} from 'react-relay';
-import {
-  loadQuery,
-  useFragment,
-  useMutation,
-  usePaginationFragment,
-  usePreloadedQuery,
-} from './react-relay';
 import {useLoaderData, useOutletContext} from 'react-router-dom';
 import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironment.js';
+import {OutletContext} from './App.js';
 import {PreloadLink} from './PreloadLink.js';
 import {
   FeatureFlagType,
@@ -30,9 +27,18 @@ import {
 import {IndexPageFlags$key} from './__generated__/IndexPageFlags.graphql.js';
 import type {IndexPageQuery as IndexPageQueryType} from './__generated__/IndexPageQuery.graphql.js';
 import IndexPageQuery from './__generated__/IndexPageQuery.graphql.js';
-import {IndexPageUpdateFlagMutation} from './__generated__/IndexPageUpdateFlagMutation.graphql.js';
+import {
+  IndexPageUpdateFlagMutation,
+  IndexPageUpdateFlagMutation$variables,
+} from './__generated__/IndexPageUpdateFlagMutation.graphql.js';
 import {formatValue} from './flagFormUtil.js';
-import {OutletContext} from './App.js';
+import {
+  loadQuery,
+  useFragment,
+  useMutation,
+  usePaginationFragment,
+  usePreloadedQuery,
+} from './react-relay';
 
 type LoaderData = {
   rootQuery: PreloadedQuery<IndexPageQueryType>;
@@ -71,7 +77,13 @@ function friendlyType(type: FeatureFlagType): string {
   }
 }
 
-function FlagRow(props: {data: IndexPageFlagRow$key}) {
+function FlagRow(props: {
+  data: IndexPageFlagRow$key;
+  onValueSelect: (payload: {
+    input: IndexPageUpdateFlagMutation$variables;
+    changeDescription: React.ReactElement;
+  }) => void;
+}) {
   const flag = useFragment(
     graphql`
       fragment IndexPageFlagRow on FeatureFlag {
@@ -89,15 +101,6 @@ function FlagRow(props: {data: IndexPageFlagRow$key}) {
     props.data,
   );
 
-  const [commit, isInFlight] = useMutation<IndexPageUpdateFlagMutation>(graphql`
-    mutation IndexPageUpdateFlagMutation($input: UpdateFeatureFlagInput!) {
-      updateFeatureFlag(input: $input) {
-        featureFlag {
-          ...IndexPageFlagRow
-        }
-      }
-    }
-  `);
 
   const {env} = useOutletContext<OutletContext>();
 
@@ -105,6 +108,7 @@ function FlagRow(props: {data: IndexPageFlagRow$key}) {
     flag.variations[
       flag.environmentVariations[env.name] ?? flag.defaultVariation
     ]?.value;
+
   return (
     <tr>
       <td>
@@ -130,7 +134,6 @@ function FlagRow(props: {data: IndexPageFlagRow$key}) {
                 <Menu.Target>
                   <Box pos="relative">
                     <Button
-                      loading={isInFlight}
                       loaderPosition="right"
                       radius={'lg'}
                       variant="default"
@@ -144,54 +147,46 @@ function FlagRow(props: {data: IndexPageFlagRow$key}) {
                 </Menu.Target>
                 <Menu.Dropdown>
                   {flag.variations.map((v, idx) => {
-                    if (idx === flag.defaultVariation) {
+                    if (
+                      idx ===
+                      (flag.environmentVariations[env.name] ??
+                        flag.defaultVariation)
+                    ) {
                       return null;
                     }
                     return (
                       <Menu.Item
                         key={idx}
                         onClick={() => {
-                          if (
-                            confirm(
-                              `Are you sure you want to change ${
-                                flag.key
-                              } from ${formatValue(
-                                flag.type,
-                                value,
-                              )} to ${formatValue(
-                                flag.type,
-                                flag.variations[idx].value,
-                              )}.`,
-                            )
-                          ) {
-                            commit({
-                              variables: {
-                                input: {
-                                  key: flag.key,
-                                  generation: flag.generation,
-                                  patch: {
-                                    environmentVariations: {
-                                      ...flag.environmentVariations,
-                                      [env.name]: idx,
-                                    },
+                          props.onValueSelect({
+                            changeDescription: (
+                              <Text>
+                                Change <Code>{flag.key}</Code> from
+                                <Code>
+                                  {formatValue(flag.type, value)}
+                                </Code> to{' '}
+                                <Code>
+                                  {formatValue(
+                                    flag.type,
+                                    flag.variations[idx].value,
+                                  )}
+                                </Code>
+                                ?
+                              </Text>
+                            ),
+                            input: {
+                              input: {
+                                key: flag.key,
+                                generation: flag.generation,
+                                patch: {
+                                  environmentVariations: {
+                                    ...flag.environmentVariations,
+                                    [env.name]: idx,
                                   },
                                 },
                               },
-                              onError(e) {
-                                alert(
-                                  // @ts-expect-error: Doesn't like the check for e.source
-                                  e.source?.errors?.[0]?.message || e.message,
-                                );
-                              },
-                              onCompleted(_resp, errors) {
-                                if (errors) {
-                                  alert(
-                                    errors?.[0]?.message || 'Unknown error.',
-                                  );
-                                }
-                              },
-                            });
-                          }
+                            },
+                          });
                         }}>
                         {formatValue(flag.type, v.value)}
                       </Menu.Item>
@@ -231,51 +226,118 @@ function Flags(props: {data: IndexPageFlags$key}) {
     props.data,
   );
 
+  const [commit, isInFlight] = useMutation<IndexPageUpdateFlagMutation>(graphql`
+    mutation IndexPageUpdateFlagMutation($input: UpdateFeatureFlagInput!) {
+      updateFeatureFlag(input: $input) {
+        featureFlag {
+          ...IndexPageFlagRow
+        }
+      }
+    }
+  `);
+
   if (!data.featureFlags.edges.length) {
     return <PreloadLink to="/flags/create">Create flag</PreloadLink>;
   }
 
   const {env} = useOutletContext<OutletContext>();
 
+  const [updateFlagInput, setUpdateFlagInput] = useState<null | {
+    input: IndexPageUpdateFlagMutation$variables;
+    changeDescription: React.ReactElement;
+  }>(null);
+
+  const onValueSelect = (flagInput: {
+    input: IndexPageUpdateFlagMutation$variables;
+    changeDescription: React.ReactElement;
+  }) => setUpdateFlagInput(flagInput);
+
   return (
-    <Table style={{tableLayout: 'auto'}} captionSide="bottom">
-      <thead>
-        <tr>
-          <th>Key</th>
-          <th>Type</th>
-          <th>Current {env.name} value</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.featureFlags.edges.map(({node}) => {
-          return <FlagRow data={node} key={node.key} />;
-        })}
-      </tbody>
-      {hasNext ? (
-        <caption>
-          <Flex justify={'center'}>
+    <>
+      <Modal
+        title={
+          <Title order={3}>Update {updateFlagInput?.input.input.key}</Title>
+        }
+        opened={!!updateFlagInput}
+        onClose={() => setUpdateFlagInput(null)}>
+        <Box>
+          {updateFlagInput?.changeDescription}
+          <Group mt="lg">
             <Button
-              mt="sm"
-              size="xs"
-              radius="sm"
-              variant="white"
-              loading={isLoadingNext}
-              loaderPosition="right"
-              rightIcon={
-                <IconRefresh
-                  style={{visibility: 'hidden'}}
-                  size="1rem"
-                  stroke={2}
-                />
-              }
-              onClick={() => loadNext(25)}>
-              Load more
+              loading={isInFlight}
+              onClick={() => {
+                if (updateFlagInput) {
+                  commit({
+                    variables: updateFlagInput.input,
+                    onError(e) {
+                      alert(
+                        // @ts-expect-error: Doesn't like the check for e.source
+                        e.source?.errors?.[0]?.message || e.message,
+                      );
+                    },
+                    onCompleted(_resp, errors) {
+                      if (errors) {
+                        alert(errors?.[0]?.message || 'Unknown error.');
+                      } else {
+                        setUpdateFlagInput(null);
+                      }
+                    },
+                  });
+                }
+              }}>
+              Update {env.name} value
             </Button>
-          </Flex>
-        </caption>
-      ) : null}
-    </Table>
+            <Button onClick={() => setUpdateFlagInput(null)} variant="outline">
+              Cancel
+            </Button>
+          </Group>
+        </Box>
+      </Modal>
+      <Table style={{tableLayout: 'auto'}} captionSide="bottom">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Type</th>
+            <th>Current {env.name} value</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.featureFlags.edges.map(({node}) => {
+            return (
+              <FlagRow
+                data={node}
+                key={node.key}
+                onValueSelect={onValueSelect}
+              />
+            );
+          })}
+        </tbody>
+        {hasNext ? (
+          <caption>
+            <Flex justify={'center'}>
+              <Button
+                mt="sm"
+                size="xs"
+                radius="sm"
+                variant="white"
+                loading={isLoadingNext}
+                loaderPosition="right"
+                rightIcon={
+                  <IconRefresh
+                    style={{visibility: 'hidden'}}
+                    size="1rem"
+                    stroke={2}
+                  />
+                }
+                onClick={() => loadNext(25)}>
+                Load more
+              </Button>
+            </Flex>
+          </caption>
+        ) : null}
+      </Table>
+    </>
   );
 }
 
