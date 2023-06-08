@@ -25,6 +25,7 @@ import RelayModernEnvironment from 'relay-runtime/lib/store/RelayModernEnvironme
 import {
   ClientSetupPageFlags$data,
   ClientSetupPageFlags$key,
+  FeatureFlagType,
 } from './__generated__/ClientSetupPageFlags.graphql.js';
 import type {ClientSetupPageQuery as ClientSetupPageQueryType} from './__generated__/ClientSetupPageQuery.graphql.js';
 import ClientSetupPageQuery from './__generated__/ClientSetupPageQuery.graphql.js';
@@ -36,9 +37,10 @@ import {
 import {Fragment, useContext, useEffect, useMemo, useState} from 'react';
 import {ClientSetupPageServerConfig$key} from './__generated__/ClientSetupPageServerConfig.graphql.js';
 import {capitalize} from './util.js';
-import {formatValue, friendlyType} from './flagFormUtil.js';
+import {defaultValue, formatValue, friendlyType} from './flagFormUtil.js';
 import {OutletContext} from './App.js';
 import {IconCheck, IconCopy} from '@tabler/icons-react';
+import {ErrorBoundary} from 'react-error-boundary';
 
 type LoaderData = {
   rootQuery: PreloadedQuery<ClientSetupPageQueryType>;
@@ -60,7 +62,13 @@ export const loader = (environment: RelayModernEnvironment): LoaderData => {
   };
 };
 
-function CodeHighlight({code, isLoading}: {code: string; isLoading?: boolean}) {
+function CodeHighlightImpl({
+  code,
+  isLoading,
+}: {
+  code: string;
+  isLoading?: boolean;
+}) {
   const [tokenInfo, setTokenInfo] = useState(null);
 
   const [isLoadingTokens, setIsLoadingTokens] = useState(false);
@@ -142,11 +150,13 @@ function CodeHighlight({code, isLoading}: {code: string; isLoading?: boolean}) {
           </CopyButton>
         </Box>
         <Code block>
+          {/* @ts-expect-error: TODO: add types for tokeninfo */}
           {tokenInfo.tokens.map((lineTokens, idx) => {
             return (
               <Fragment key={idx}>
+                {/* @ts-expect-error: TODO: add types for tokeninfo */}
                 {lineTokens.map((token, tokenIdx) => {
-                  const style = {
+                  const style: React.CSSProperties = {
                     color: token.foregroundColor,
                   };
                   if (token.isItalic) {
@@ -164,6 +174,7 @@ function CodeHighlight({code, isLoading}: {code: string; isLoading?: boolean}) {
                     </span>
                   );
                 })}
+                {/* @ts-expect-error: TODO: add types for tokeninfo */}
                 {idx === tokenInfo.tokens.length - 1 ? null : '\n'}
               </Fragment>
             );
@@ -172,6 +183,39 @@ function CodeHighlight({code, isLoading}: {code: string; isLoading?: boolean}) {
       </Box>
     );
   }
+}
+
+function CodeHighlight({code, isLoading}: {code: string; isLoading?: boolean}) {
+  return (
+    <ErrorBoundary fallback={<Code block>{code}</Code>}>
+      <CodeHighlightImpl code={code} isLoading={isLoading} />
+    </ErrorBoundary>
+  );
+}
+
+function usageCode(
+  exampleFlag:
+    | ClientSetupPageFlags$data['featureFlags']['edges'][number]['node']
+    | undefined
+    | null,
+) {
+  const flagName = exampleFlag?.key || 'example_flag';
+  const flagType = exampleFlag?.type || 'INT';
+  return `// Get the current value of the flag.
+// If the flag doesn't exist, returns the \`defaultValue\` provided in the constructor
+flagValue = client.flagValue("${flagName}");
+
+// Provide a custom default value as the second argument
+flagValue = client.flagValue("${flagName}", ${formatValue(
+    flagType,
+    defaultValue(flagType),
+  )});
+
+// Subscribe to changes to flags
+client.on("flagUpdated", ({key, value, previousValue}) => {
+  console.log("%s change from %s to %s", key, previousValue value);
+});
+`;
 }
 
 // XXX: Needs a better error boundary (always defaults to login now)
@@ -352,6 +396,8 @@ if (setupErrors) {
     };
   }, [code]);
 
+  const exampleFlag = flagMap.get(selectedFlags.values().next().value);
+
   return (
     <Box>
       <Box>
@@ -442,6 +488,10 @@ if (setupErrors) {
             />
           </Group>
           <CodeHighlight code={formattedCode} isLoading={isLoading} />
+          <Title mt="1em" order={6}>
+            Usage
+          </Title>
+          <CodeHighlight code={usageCode(exampleFlag)} />
         </Box>
       </Box>
     </Box>
