@@ -41,13 +41,16 @@ export function getTextColor(bgColor: string): string {
   var B = parseInt(bgColor.substring(5, 7), 16);
 
   var brightness = (R * 299 + G * 587 + B * 114) / 1000;
-  
+
   if (brightness > 127.5) {
-      // The color is light, use black text color
-      return "#000000";
+    // The color is light, use black text color
+    return '#000000';
   } else {
-      // The color is dark, use white text color
-      return "#ffffff";
+    // The color is dark, use white text color
+    return '#ffffff';
   }
 }
 
+export function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

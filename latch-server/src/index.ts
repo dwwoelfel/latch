@@ -2,7 +2,7 @@ import {createServer} from './server/server.js';
 import process from 'process';
 import {initializeConfig} from './config.js';
 
-async function start() {
+async function start() {  
   const config = await initializeConfig();
 
   const port = parseInt(process.env.PORT || '6060', 10);
@@ -34,7 +34,7 @@ async function start() {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
   process.on('SIGUSR2', shutdown);
-  process.on('beforeExit', shutdown);
+  process.on('beforeExit', shutdown);  
 }
 
 start();

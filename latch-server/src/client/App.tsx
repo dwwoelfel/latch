@@ -387,6 +387,12 @@ function AppImpl() {
                     Create flag
                   </Anchor>
                 )}
+                {loc.pathname == 'client' ||
+                !data.viewer.environments.length ? null : (
+                  <Anchor to="/client" component={Link}>
+                    Client setup
+                  </Anchor>
+                )}
                 <Menu>
                   <Menu.Target>
                     <ActionIcon>

@@ -53,6 +53,18 @@ export const createRoutes = (
           };
         },
       },
+      {
+        path: '/client',
+        async lazy() {
+          const {loader, ClientSetupPage} = await import(
+            './ClientSetupPage.tsx'
+          );
+          return {
+            loader: loader.bind(loader, environment),
+            element: <ClientSetupPage />,
+          };
+        },
+      },
     ],
   },
   {

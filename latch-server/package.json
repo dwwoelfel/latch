@@ -54,6 +54,7 @@
     "@graphql-codegen/typescript-resolvers": "^4.0.0",
     "@types/dotenv": "^8.2.0",
     "@types/node": "^20.2.5",
+    "@types/prettier": "^2.7.3",
     "@types/protobufjs": "^6.0.0",
     "@types/react": "^18.2.7",
     "@types/react-dom": "^18.2.4",

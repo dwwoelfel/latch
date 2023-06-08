@@ -2985,6 +2985,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/prettier@npm:^2.7.3":
+  version: 2.7.3
+  resolution: "@types/prettier@npm:2.7.3"
+  checksum: 705384209cea6d1433ff6c187c80dcc0b95d99d5c5ce21a46a9a58060c527973506822e428789d842761e0280d25e3359300f017fbe77b9755bc772ab3dc2f83
+  languageName: node
+  linkType: hard
+
 "@types/prop-types@npm:*":
   version: 15.7.5
   resolution: "@types/prop-types@npm:15.7.5"
@@ -6063,6 +6070,7 @@ __metadata:
     "@tabler/icons-react": ^2.20.0
     "@types/dotenv": ^8.2.0
     "@types/node": ^20.2.5
+    "@types/prettier": ^2.7.3
     "@types/protobufjs": ^6.0.0
     "@types/react": ^18.2.7
     "@types/react-dom": ^18.2.4

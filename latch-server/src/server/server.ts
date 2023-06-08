@@ -174,7 +174,7 @@ async function executeQuery({
   const res = await execute({
     schema,
     document,
-    contextValue: createContext({bucket, topic}),
+    contextValue: createContext({bucket, topic, config: request.config}),
     variableValues: variables,
     operationName,
   });

@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { ViewerSource, FeatureFlagSource, FeatureFlagVersionSource, FeatureFlagVersionsConnectionSource, Context } from './schema';
+import { ServerConfigSource, ViewerSource, FeatureFlagSource, FeatureFlagVersionSource, FeatureFlagVersionsConnectionSource, Context } from './schema';
 import { Subscription } from '@google-cloud/pubsub';
 import { GetFilesResponse, File } from '@google-cloud/storage';
 export type Maybe<T> = T | null;
@@ -191,6 +191,13 @@ export type QueryTestVariationByEnvironmentArgs = {
   input?: InputMaybe<Scalars['VariationByEnvironment']['input']>;
 };
 
+export type ServerConfig = {
+  __typename?: 'ServerConfig';
+  bucketName: Scalars['String']['output'];
+  projectId: Scalars['String']['output'];
+  topicName: Scalars['String']['output'];
+};
+
 export type TopicSubscription = {
   __typename?: 'TopicSubscription';
   consoleUrl: Scalars['String']['output'];
@@ -230,6 +237,7 @@ export type Viewer = Node & {
   featureFlag?: Maybe<FeatureFlag>;
   featureFlags: FeatureFlagsConnection;
   id: Scalars['ID']['output'];
+  serverConfig: ServerConfig;
   topicSubscriptions: Array<TopicSubscription>;
 };
 
@@ -342,6 +350,7 @@ export type ResolversTypes = {
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
+  ServerConfig: ResolverTypeWrapper<ServerConfigSource>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   TopicSubscription: ResolverTypeWrapper<Subscription>;
   UpdateEnvironmentInput: UpdateEnvironmentInput;
@@ -377,6 +386,7 @@ export type ResolversParentTypes = {
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
   Query: {};
+  ServerConfig: ServerConfigSource;
   String: Scalars['String']['output'];
   TopicSubscription: Subscription;
   UpdateEnvironmentInput: UpdateEnvironmentInput;
@@ -490,6 +500,13 @@ export type QueryResolvers<ContextType = Context, ParentType extends ResolversPa
   viewer?: Resolver<ResolversTypes['Viewer'], ParentType, ContextType>;
 };
 
+export type ServerConfigResolvers<ContextType = Context, ParentType extends ResolversParentTypes['ServerConfig'] = ResolversParentTypes['ServerConfig']> = {
+  bucketName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  projectId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  topicName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type TopicSubscriptionResolvers<ContextType = Context, ParentType extends ResolversParentTypes['TopicSubscription'] = ResolversParentTypes['TopicSubscription']> = {
   consoleUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   hostname?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -517,6 +534,7 @@ export type ViewerResolvers<ContextType = Context, ParentType extends ResolversP
   featureFlag?: Resolver<Maybe<ResolversTypes['FeatureFlag']>, ParentType, ContextType, RequireFields<ViewerFeatureFlagArgs, 'key'>>;
   featureFlags?: Resolver<ResolversTypes['FeatureFlagsConnection'], ParentType, ContextType, RequireFields<ViewerFeatureFlagsArgs, 'first'>>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  serverConfig?: Resolver<ResolversTypes['ServerConfig'], ParentType, ContextType>;
   topicSubscriptions?: Resolver<Array<ResolversTypes['TopicSubscription']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -537,6 +555,7 @@ export type Resolvers<ContextType = Context> = {
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  ServerConfig?: ServerConfigResolvers<ContextType>;
   TopicSubscription?: TopicSubscriptionResolvers<ContextType>;
   UpdateEnvironmentPayload?: UpdateEnvironmentPayloadResolvers<ContextType>;
   UpdateFeatureFlagPayload?: UpdateFeatureFlagPayloadResolvers<ContextType>;

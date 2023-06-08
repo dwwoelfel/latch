@@ -8,6 +8,7 @@ const config: CodegenConfig = {
       config: {
         contextType: './schema#Context',
         mappers: {
+          ServerConfig: './schema#ServerConfigSource',
           Viewer: './schema#ViewerSource',
           FeatureFlag: './schema#FeatureFlagSource',
           FeatureFlagVersion: './schema#FeatureFlagVersionSource',

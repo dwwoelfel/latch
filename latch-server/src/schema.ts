@@ -12,6 +12,7 @@ import {
 } from 'graphql';
 import proto from 'protobufjs';
 import {FeatureFlagType, Resolvers} from './resolvers-types.js';
+import {Config} from './config.js';
 
 const sdl = fs.readFileSync('schema.graphql', 'utf-8');
 
@@ -135,6 +136,7 @@ export type Context = {
   topic: Topic;
   flagLoader: FlagLoader;
   metaLoader: FlagMetaLoader;
+  config: Config;
 };
 
 export type FeatureFlagSource = {
@@ -156,15 +158,20 @@ export type ViewerSource = {
   __typename: 'Viewer';
 };
 
+export type ServerConfigSource = {};
+
 export function createContext({
   bucket,
   topic,
+  config,
 }: {
   bucket: Bucket;
   topic: Topic;
+  config: Config;
 }): Context {
   topic.getSubscriptions;
   return {
+    config,
     bucket,
     topic,
     flagLoader: new DataLoader<FlagKey, FlagValue, string>(
@@ -463,6 +470,9 @@ export const resolvers: Resolvers = {
   Viewer: {
     id() {
       return encodeNodeId({typeName: 'Viewer', naturalId: 'Viewer'});
+    },
+    serverConfig() {
+      return {};
     },
     async featureFlag(_parent, args, context) {
       try {
@@ -877,6 +887,17 @@ export const resolvers: Resolvers = {
     },
     viewer() {
       return {__typename: 'Viewer'};
+    },
+  },
+  ServerConfig: {
+    bucketName(_parent, _args, context) {
+      return context.config.bucketName;
+    },
+    topicName(_parent, _args, context) {
+      return context.config.topicName;
+    },
+    projectId(_parent, _args, context) {
+      return context.config.projectId;
     },
   },
 };

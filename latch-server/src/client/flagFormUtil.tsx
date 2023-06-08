@@ -8,7 +8,7 @@ export function formatValue(type: FeatureFlagType, value: any): string {
     case 'INT':
       return JSON.stringify(value);
     case 'STRING':
-      return value === '' ? '""' : value;
+      return value === '' ? '""' : `"${value}"`;
     case 'JSON':
       return value;
     case '%future added value':
