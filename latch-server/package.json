@@ -35,7 +35,7 @@
     "googleapis": "^118.0.0",
     "graphql": "^17.0.0-alpha.2",
     "js-base64": "^3.7.5",
-    "latch-node-sdk": "^1.0.0-alpha.5",
+    "latch-node-sdk": "^1.0.0-alpha.7",
     "protobufjs": "^7.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

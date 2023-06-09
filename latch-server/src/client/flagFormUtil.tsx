@@ -1,5 +1,8 @@
 import {JsonInput, NumberInput, Select, TextInput} from '@mantine/core';
-import {FeatureFlagType} from './__generated__/NewFlagPageCreateFlagMutation.graphql';
+import {
+  FeatureFlagType,
+  FeatureFlagVariationInput,
+} from './__generated__/NewFlagPageCreateFlagMutation.graphql';
 
 export function formatValue(type: FeatureFlagType, value: any): string {
   switch (type) {
@@ -10,12 +13,32 @@ export function formatValue(type: FeatureFlagType, value: any): string {
     case 'STRING':
       return value === '' ? '""' : `"${value}"`;
     case 'JSON':
-      return value;
+      return JSON.stringify(value);
     case '%future added value':
       return value;
     default:
       return value;
   }
+}
+
+export function fixVariations(
+  type: FeatureFlagType,
+  variations: FeatureFlagVariationInput[],
+) {
+  if (type !== 'JSON') {
+    return variations;
+  }
+  return variations.map((v) => ({...v, value: JSON.parse(v.value)}));
+}
+
+export function unFixVariations(
+  type: FeatureFlagType,
+  variations: FeatureFlagVariationInput[],
+) {
+  if (type !== 'JSON') {
+    return variations;
+  }
+  return variations.map((v) => ({...v, value: JSON.stringify(v.value)}));
 }
 
 export function friendlyType(type: FeatureFlagType): string {

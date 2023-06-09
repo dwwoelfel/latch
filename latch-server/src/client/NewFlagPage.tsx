@@ -23,10 +23,12 @@ import {loadQuery, useMutation, usePreloadedQuery} from './react-relay';
 import {useLoaderData, useNavigate} from 'react-router-dom';
 import {
   FeatureFlagType,
+  FeatureFlagVariationInput,
   NewFlagPageCreateFlagMutation,
 } from './__generated__/NewFlagPageCreateFlagMutation.graphql';
 import {
   defaultValue,
+  fixVariations,
   formatValue,
   friendlyType,
   inputForType,
@@ -175,7 +177,17 @@ export function NewFlagPage() {
     'JSON',
   ];
 
-  const {variations} = form.values.variationsByType[form.values.type];
+  const inputType = form.values.type;
+  const {variations} = form.values.variationsByType[inputType];
+
+  const [selectVariations, setSelectVariations] =
+    useState<FeatureFlagVariationInput[]>(variations);
+
+  useEffect(() => {
+    try {
+      setSelectVariations(fixVariations(inputType, vs));
+    } catch (_e) {}
+  }, [inputType, variations]);
 
   const navigate = useNavigate();
 
@@ -187,11 +199,21 @@ export function NewFlagPage() {
 
         <form
           onSubmit={form.onSubmit((values) => {
+            let variations;
+            try {
+              variations = fixVariations(
+                values.type,
+                values.variationsByType[values.type].variations,
+              );
+            } catch (e) {
+              setSaveError('One of the variations is invalid.');
+              return;
+            }
             const input = {
               key: values.key,
               description:
                 values.description === '' ? null : values.description,
-              variations: values.variationsByType[values.type].variations,
+              variations: fixVariations(values.type, variations),
               type: values.type,
               defaultVariation:
                 values.variationsByType[values.type].defaultVariation,
@@ -284,7 +306,7 @@ export function NewFlagPage() {
             label="Default variation"
             description="The variation that will be used if a new environment is created in the future."
             // @ts-expect-error: it doesn't like that I use a number for value, but it seems to work
-            data={variations.map((v, idx) => ({
+            data={selectVariations.map((v, idx) => ({
               value: idx,
               label: formatValue(form.values.type, v.value),
             }))}
@@ -306,7 +328,7 @@ export function NewFlagPage() {
                     </Group>
                   }
                   // @ts-expect-error: it doesn't like that I use a number for value, but it seems to work
-                  data={variations.map((v, idx) => ({
+                  data={selectVariations.map((v, idx) => ({
                     value: idx,
                     label: formatValue(form.values.type, v.value),
                   }))}

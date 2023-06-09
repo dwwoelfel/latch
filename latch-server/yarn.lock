@@ -6034,13 +6034,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"latch-node-sdk@npm:^1.0.0-alpha.5":
-  version: 1.0.0-alpha.5
-  resolution: "latch-node-sdk@npm:1.0.0-alpha.5"
+"latch-node-sdk@npm:^1.0.0-alpha.7":
+  version: 1.0.0-alpha.7
+  resolution: "latch-node-sdk@npm:1.0.0-alpha.7"
   dependencies:
     "@google-cloud/pubsub": ^3.7.0
     "@google-cloud/storage": ^6.10.1
-  checksum: d0f318d1388d5ed4756d125d483a0847804135cddce7c131f3d2d326fb8cf1c82ad6f4d5ffbbdafc5767a7be7feb7d09eaf94a883ef20c298ca28a18a10b7588
+  checksum: 081f356da9461c2be48c654c3f1ec3b21dd08d08bbaa44f84592e2366894a502aadd9f15051f0d566e740db9fed432e3cf2ada523d64f4c2d85ac27edc5cdddf
   languageName: node
   linkType: hard
 
@@ -6089,7 +6089,7 @@ __metadata:
     googleapis: ^118.0.0
     graphql: ^17.0.0-alpha.2
     js-base64: ^3.7.5
-    latch-node-sdk: ^1.0.0-alpha.5
+    latch-node-sdk: ^1.0.0-alpha.7
     nodemon: ^2.0.22
     prettier: ^2.8.8
     protobufjs: ^7.2.3

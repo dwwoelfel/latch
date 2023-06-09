@@ -213,7 +213,7 @@ flagValue = client.flagValue("${flagName}", ${formatValue(
 
 // Subscribe to changes to flags
 client.on("flagUpdated", ({key, value, previousValue}) => {
-  console.log("%s change from %s to %s", key, previousValue value);
+  console.log("%s change from %s to %s", key, previousValue, value);
 });
 `;
 }
@@ -322,12 +322,12 @@ function ClientSetup(props: {
   let code = ``;
 
   if (packageType === 'esm') {
-    code += `import {${[...imports].join(', ')}} from 'node-latch-client';`;
+    code += `import {${[...imports].join(', ')}} from 'latch-node-sdk';`;
   }
   if (packageType === 'cjs') {
     code += `const {${[...imports].join(
       ', ',
-    )}} = require('node-latch-client');`;
+    )}} = require('latch-node-sdk');`;
   }
 
   code += '\n\n';
@@ -488,9 +488,20 @@ if (setupErrors) {
             />
           </Group>
           <CodeHighlight code={formattedCode} isLoading={isLoading} />
-          <Title mt="1em" order={6}>
+          <Title mt="1em" mb="0.5em" order={6}>
             Usage
           </Title>
+          <Text size="sm">
+            Make sure your app has access to{' '}
+            <Anchor
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://cloud.google.com/docs/authentication/application-default-credentials">
+              Google Application Default Credentials
+            </Anchor>{' '}
+            with the ability to read from storage and create pub/sub
+            subscriptions.
+          </Text>
           <CodeHighlight code={usageCode(exampleFlag)} />
         </Box>
       </Box>

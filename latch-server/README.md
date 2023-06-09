@@ -73,7 +73,7 @@ There is a docker image available on Docker Hub at `docker.io/dwwoelfel/latch-se
 
 #### Deploying to Cloud run
 
-You can deploy from cloud run from [https://console.cloud.google.com/run/create](https://console.cloud.google.com/run/create)
+You can deploy to cloud run from [https://console.cloud.google.com/run/create](https://console.cloud.google.com/run/create)
 
 Enter `docker.io/dwwoelfel/latch-server` as the Container image URL.
 

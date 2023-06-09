@@ -53,9 +53,11 @@ import FlagPageQuery from './__generated__/FlagPageQuery.graphql.js';
 import {FlagPageUpdateFlagMutation} from './__generated__/FlagPageUpdateFlagMutation.graphql.js';
 import {
   defaultValue,
+  fixVariations,
   formatValue,
   friendlyType,
   inputForType,
+  unFixVariations,
 } from './flagFormUtil.js';
 import {
   FlagPageEnvironments$data,
@@ -109,10 +111,13 @@ function FlagDetail({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const initialValues = {
-    variations: flag.variations.map((v) => ({
-      value: v.value,
-      description: v.description,
-    })),
+    variations: unFixVariations(
+      flag.type,
+      flag.variations.map((v) => ({
+        value: v.value,
+        description: v.description,
+      })),
+    ),
     defaultVariation: flag.defaultVariation,
     environmentVariations: {...flag.environmentVariations},
     description: flag.description || '',
@@ -147,16 +152,32 @@ function FlagDetail({
     }
   }, [form]);
 
+  const inputVariations = form.values.variations;
+  const [selectVariations, setSelectVariations] = useState(inputVariations);
+
+  useEffect(() => {
+    try {
+      setSelectVariations(fixVariations(flag.type, inputVariations));
+    } catch (_e) {}
+  }, [inputVariations]);
+
   return (
     <form
       onSubmit={form.onSubmit((values) => {
         setSaveError(null);
+        let variations;
+        try {
+          variations = fixVariations(flag.type, values.variations);
+        } catch (e) {
+          setSaveError('One of the variations is invalid.');
+          return;
+        }
         const input = {
           key: flag.key,
           generation: flag.generation,
           patch: {
             description: values.description === '' ? null : values.description,
-            variations: values.variations,
+            variations,
             defaultVariation: values.defaultVariation,
             environmentVariations: values.environmentVariations,
           },
@@ -211,7 +232,7 @@ function FlagDetail({
           {isEditing ? (
             <Select
               // @ts-expect-error: it doesn't like that I use a number for value, but it seems to work
-              data={form.values.variations.map((v, idx) => ({
+              data={selectVariations.map((v, idx) => ({
                 value: idx,
                 label: formatValue(flag.type, v.value),
               }))}
@@ -230,7 +251,7 @@ function FlagDetail({
               {isEditing ? (
                 <Select
                   // @ts-expect-error: it doesn't like that I use a number for value, but it seems to work
-                  data={form.values.variations.map((v, idx) => ({
+                  data={selectVariations.map((v, idx) => ({
                     value: idx,
                     label: formatValue(flag.type, v.value),
                   }))}
