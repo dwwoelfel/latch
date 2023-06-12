@@ -1,7 +1,10 @@
 {
   "name": "latch-node-sdk",
-  "version": "1.0.0",
-  "files": ["src", "dist"],
+  "version": "1.0.1",
+  "files": [
+    "src",
+    "dist"
+  ],
   "packageManager": "yarn@3.5.0",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
