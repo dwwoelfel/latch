@@ -1,0 +1,8 @@
+{
+  "watch": ["src"],
+  "ignore": ["src/**/*.test.ts", "src/client/**/*"],
+  "ext": "ts",
+  "exec": "esbuild src/index.ts test/test.ts --platform=node --outdir=dist --format=cjs && DEBUG_GRPC=true node dist/test/test.js",
+  "signal": "SIGTERM",
+  "spawn": true
+}

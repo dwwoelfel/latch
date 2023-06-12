@@ -1,0 +1,22 @@
+{
+  "name": "latch-node-sdk",
+  "version": "1.0.0",
+  "files": ["src", "dist"],
+  "packageManager": "yarn@3.5.0",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "rm -r dist && tsc --project tsconfig.esm.json && tsc --project tsconfig.cjs.json && yarn postbuild",
+    "postbuild": "node postbuild.mjs"
+  },
+  "dependencies": {
+    "@google-cloud/pubsub": "^3.7.0",
+    "@google-cloud/storage": "^6.10.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.17.19",
+    "nodemon": "^2.0.22",
+    "typescript": "^5.0.4"
+  }
+}
