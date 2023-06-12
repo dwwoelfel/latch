@@ -185,7 +185,7 @@ export function NewFlagPage() {
 
   useEffect(() => {
     try {
-      setSelectVariations(fixVariations(inputType, vs));
+      setSelectVariations(fixVariations(inputType, variations));
     } catch (_e) {}
   }, [inputType, variations]);
 

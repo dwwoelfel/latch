@@ -63,7 +63,7 @@ export function defaultValue(type: FeatureFlagType, alt?: boolean): any {
     case 'BOOL':
       return alt ? false : true;
     case 'FLOAT':
-      return alt ? 2.0 : 1.0;
+      return alt ? 2.5 : 1.5;
     case 'INT':
       return alt ? 2 : 1;
     case 'STRING':
@@ -73,6 +73,14 @@ export function defaultValue(type: FeatureFlagType, alt?: boolean): any {
     case '%future added value':
       return '';
   }
+}
+
+function choosePrecision(n: number | undefined | null) {
+  if (!n) {
+    return 2;
+  }
+  const [_pre, post] = `${n}`.split('.');
+  return Math.max(post?.length || 0, 2) + 1; 
 }
 
 export function inputForType(
@@ -92,7 +100,14 @@ export function inputForType(
         />
       );
     case 'FLOAT':
-      return <NumberInput label="Value" {...inputProps} />;
+      return (
+        <NumberInput
+          label="Value"
+          precision={choosePrecision(inputProps.value)}
+          removeTrailingZeros
+          {...inputProps}
+        />
+      );
     case 'INT':
       return <NumberInput label="Value" precision={0} {...inputProps} />;
     case 'STRING':
