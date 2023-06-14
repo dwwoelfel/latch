@@ -25,6 +25,7 @@ pnpm add latch-node-sdk
 
 ## Usage
 
+Make sure your app has access to [Google Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) with the ability to read from your storage bucket and create subscriptions on your pub/sub topic.
 
 ### Create the client
 
