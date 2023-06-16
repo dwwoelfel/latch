@@ -2,6 +2,10 @@
 
 Latch server provides the UI for managing feature flags stored in Google Storage.
 
+
+https://github.com/dwwoelfel/latch/assets/476818/baa22837-15a6-4522-915d-c28719d76d78
+
+
 ## Setup
 
 ### Create a bucket on google cloud with versioning enabled:
