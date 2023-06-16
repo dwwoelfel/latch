@@ -78,6 +78,8 @@ There is only a client for nodejs at the moment, but it is straightforward to im
 
 ## Limitations
 
+There can only be one active value per environment. This isn't a fundamental limitation and we may build out support for percentage rollouts and targeting in the future.
+
 Pub/sub is limited to 10k subscriptions. If your application has more than 10k nodes, then some sort of connection pooler will need to be built between pub/sub and your nodes.
 
 It takes about 1-2 seconds to create the pub/sub subscription during initialization. It's not suitable for serverless environments without some sort of intermediate connection pooling server.
