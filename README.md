@@ -10,6 +10,12 @@ There are two packages in the repo.
 
 [`latch-node-sdk`](https://github.com/dwwoelfel/latch/tree/main/latch-node-sdk) houses the node client that should be embedded in your app.
 
+
+
+https://github.com/dwwoelfel/latch/assets/476818/5ec44348-93a9-4dbe-851c-ae85d835260f
+
+
+
 ## Why Google Storage
 
 Google storage has a few features that make it well-suited as the backend for feature flagging:
