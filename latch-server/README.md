@@ -19,7 +19,7 @@ gcloud storage buckets update gs://YOUR_BUCKET_NAME --versioning
 ### Create a PubSub subscription to changes on the bucket
 
 ```
-gcloud storage buckets notifications create gs://YOUR_BUCKET_NAME --topic=YOUR_TOPIC_NAME --event-types=OBJECT_FINALIZE`
+gcloud storage buckets notifications create gs://YOUR_BUCKET_NAME --topic=YOUR_TOPIC_NAME --event-types=OBJECT_FINALIZE
 ```
 
 ### Create an OAuth client with storage and pub/sub scopes

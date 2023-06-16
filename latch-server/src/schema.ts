@@ -535,6 +535,7 @@ export const resolvers: Resolvers = {
       const name = validateEnvironmentName(args.input.name);
       const file = context.bucket.file(`environments/${name}`);
       await file.save('{}', {
+        contentType: 'application/json; charset=utf-8',
         metadata: {
           metadata: {
             color: args.input.color,
@@ -554,6 +555,7 @@ export const resolvers: Resolvers = {
       const name = validateEnvironmentName(args.input.name);
       const file = context.bucket.file(`environments/${name}`);
       await file.save('{}', {
+        contentType: 'application/json; charset=utf-8',
         metadata: {
           metadata: {
             color: args.input.patch.color,
@@ -580,12 +582,13 @@ export const resolvers: Resolvers = {
       });
 
       const file = context.bucket.file(`flags/${newFlag.key}`);
-      const flagValue = JSON.stringify(newFlag);
+      const flagValue = JSON.stringify(newFlag, null, 2);
       try {
         await file.save(flagValue, {
           preconditionOpts: {
             ifGenerationMatch: 0,
           },
+          contentType: 'application/json; charset=utf-8',
           metadata: {
             metadata: fileMetadata(newFlag),
           },
@@ -625,7 +628,7 @@ export const resolvers: Resolvers = {
       });
 
       const file = context.bucket.file(`flags/${args.input.key}`);
-      const flagValue = JSON.stringify(newFlag);
+      const flagValue = JSON.stringify(newFlag, null, 2);
       try {
         const generation = args.input.generation;
         // @ts-expect-error: we get the value as a string, so we'll pass it as
@@ -636,6 +639,7 @@ export const resolvers: Resolvers = {
           preconditionOpts: {
             ifGenerationMatch,
           },
+          contentType: 'application/json; charset=utf-8',
           metadata: {
             metadata: fileMetadata(newFlag),
           },
